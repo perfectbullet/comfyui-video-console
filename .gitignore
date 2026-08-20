@@ -1,0 +1,19 @@
+# 依赖
+node_modules/
+
+# 构建产物（容器内会重新构建）
+dist/
+
+# 日志
+*.log
+npm-debug.log*
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+
+# 本地环境
+.vite/
+.env
+.env.local
