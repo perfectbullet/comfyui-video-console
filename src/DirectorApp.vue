@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <header><div><small>COMFYUI · MINIMAX H3</small><h1>多模式导演台</h1><p>按原版导演流水线配置分段、参考素材和输出参数。</p></div><nav><a href="/?mode=storyboard">九宫格分镜</a><a href="/?mode=i2v">I2V 首帧</a><a class="active" href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
+    <header><div><small>COMFYUI · MINIMAX H3</small><h1>多模式导演台</h1><p>按原版导演流水线配置分段、参考素材和输出参数。</p></div><nav><a class="active" href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
     <main>
       <section class="card settings"><h2>全局设置</h2>
         <label>ComfyUI 服务地址<input v-model.trim="server" /></label>

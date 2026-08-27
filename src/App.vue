@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <header><div><small>COMFYUI · CS-H3</small><h1>九宫格分镜视频生成</h1><p>上传 3×3 故事板，生成一段连续的电影级短视频。</p></div><nav><a class="active" href="/?mode=storyboard">九宫格分镜生成</a><a href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=csh3">CS-H3 导演台</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
+    <header><div><small>COMFYUI · CS-H3</small><h1>九宫格分镜视频生成</h1><p>上传 3×3 故事板，生成一段连续的电影级短视频。</p></div><nav><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
     <main>
       <section class="card settings">
         <h2>生成设置</h2>

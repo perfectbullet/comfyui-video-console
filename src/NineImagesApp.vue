@@ -1,10 +1,10 @@
 <template>
   <div class="app">
-    <header><div><small>COMFYUI · CS-H3</small><h1>九宫格分镜视频生成（九图版）</h1><p>上传分镜图片（1–9 张均可），作为同一条 CSH3MultimodalDirector 时间线，生成一段完整 MP4。</p></div><nav><a href="/?mode=storyboard">九宫格分镜生成</a><a href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a class="active" href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
+    <header><div><small>COMFYUI · CS-H3</small><h1>九宫格分镜视频生成（九图版）</h1><p>上传分镜图片（1–9 张均可），作为同一条 CSH3MultimodalDirector 时间线，生成一段完整 MP4。</p></div><nav><a href="/?mode=director">多模式导演台</a><a class="active" href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
     <main>
       <section class="card settings">
         <h2>生成设置</h2>
-        <label>ComfyUI 服务地址<input v-model.trim="server" /></label>
+        <label>ComfyUI 服务地址<input v-model.trim="server" list="comfyui-server-options" placeholder="选择或输入 ComfyUI 服务地址" /><datalist id="comfyui-server-options"><option v-for="option in serverOptions" :key="option.url" :value="option.url">{{ option.label }}</option></datalist></label>
         <div class="params">
           <label>输出比例<select v-model="aspectRatio"><option>自动</option><option>21:9 超宽屏</option><option>16:9 横屏</option><option>4:3 横屏</option><option>1:1 方形</option><option>3:4 竖屏</option><option>9:16 竖屏</option></select></label>
           <label>宫格格式<select v-model="gridLayout"><option>3x3 九宫格</option></select></label>
@@ -36,6 +36,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import workflowTemplate from './assets/cs_h3_9panel_storyboard.api-v2.json'
+import serverOptions from './assets/comfyui_servers.json'
 
 const defaultGlobalPrompt=`整体采用电影级写实风格，画面精致、有高级商业广告质感。九个镜头围绕同一个主体展开：一只白色外带咖啡杯，杯身带简洁深绿色圆形图案，无明显品牌文字。保持咖啡杯外形、颜色、杯盖和比例在各镜头中尽可能一致。
 
@@ -63,7 +64,7 @@ const defaultShotPrompts=[
 '强光逐渐消散，显现夜晚高楼天台，同一只咖啡杯放在安全的桌面前景，远处城市灯海闪烁。镜头从杯子近景缓慢上抬，逐步露出城市天际线，空气中有轻微雾气和真实夜景光晕。镜头稳定、宏大但克制，最后镜头继续向天空抬升。',
 '镜头继续向上抬升，城市夜空逐渐变成清晰壮丽的银河，同一只咖啡杯仍位于画面下方，杯口升起的热气逐渐化成细微发光粒子并飘向星空。银河缓慢流动，星光自然闪烁，不要夸张爆炸特效。镜头随后缓慢向咖啡杯重新下降，发光粒子逐渐汇聚成暖色光芒。',
 '发光粒子逐渐化成室内台灯的暖黄色光芒，同一只咖啡杯安静放在木质桌面中央，旁边可以有打开的书本或电脑，但不要出现可读文字。镜头缓慢向后拉远，杯口仍有轻微热气，室内环境温暖安静。最终画面停留在咖啡杯和暖光中，运动逐渐停止，形成完整收尾。']
-const server=ref('https://u1114350-7877bd0c3a5b.bjb2.seetacloud.com:8443'), aspectRatio=ref('16:9 横屏'), gridLayout=ref('3x3 九宫格'), megapixels=ref(1.8), resolutionMultiple=ref(32), globalPrompt=ref(defaultGlobalPrompt)
+const server=ref(serverOptions[0].url), aspectRatio=ref('16:9 横屏'), gridLayout=ref('3x3 九宫格'), megapixels=ref(1.8), resolutionMultiple=ref(32), globalPrompt=ref(defaultGlobalPrompt)
 const shots=ref(Array.from({length:9},(_,i)=>({file:null,preview:'',prompt:defaultShotPrompts[i],duration:1})))
 const running=ref(false), job=ref(null), gridImage=ref(null)
 const uploaded=computed(()=>shots.value.filter(s=>s.file||s.uploadedPath).length)

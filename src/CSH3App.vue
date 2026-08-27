@@ -2,7 +2,7 @@
   <div class="app">
     <header>
       <div><small>COMFYUI · CS-H3</small><h1>CS-H3 多模态参考导演台</h1><p>批量调用 CS-H3 导演台工作流，经 SwarmUI 队列分发到 4 实例并行。</p></div>
-      <nav><a href="/?mode=storyboard">九宫格分镜生成</a><a href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a class="active" href="/?mode=csh3">CS-H3 导演台</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav>
+      <nav><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav>
     </header>
     <main>
       <section class="card settings">

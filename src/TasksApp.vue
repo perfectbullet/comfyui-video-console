@@ -2,11 +2,11 @@
   <div class="app">
     <header>
       <div><small>COMFYUI · CS-H3</small><h1>任务管理</h1><p>当前 ComfyUI 实例的实时状态、历史详情与生成视频。</p></div>
-      <nav><a href="/?mode=storyboard">九宫格分镜生成</a><a href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=csh3">CS-H3 导演台</a><a class="active" href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav>
+      <nav><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a class="active" href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav>
     </header>
     <main>
       <section class="card summary">
-        <label class="server">ComfyUI 服务地址<input v-model.trim="server" @change="load" /></label>
+        <label class="server">ComfyUI 服务地址<input v-model.trim="server" list="comfyui-server-options" placeholder="选择或输入 ComfyUI 服务地址" @change="load" /><datalist id="comfyui-server-options"><option v-for="option in serverOptions" :key="option.url" :value="option.url">{{ option.label }}</option></datalist></label>
         <div class="stats">
           <div><strong class="running">{{ running.length }}</strong><span>运行中</span></div>
           <div><strong class="queued">{{ pending.length }}</strong><span>排队中</span></div>
@@ -56,8 +56,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import serverOptions from './assets/comfyui_servers.json'
 
-const server = ref('https://u1114350-7877bd0c3a5b.bjb2.seetacloud.com:8443')
+const server = ref(serverOptions[0].url)
 const running = ref([]), pending = ref([]), completed = ref([])
 const filter = ref('all')
 let timer = null
