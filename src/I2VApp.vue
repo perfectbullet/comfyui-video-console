@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <header><div><small>COMFYUI · MINIMAX H3</small><h1>I2V 首帧生视频</h1><p>上传首帧图片与提示词，直接提交 MiniMax H3 I2V 工作流。</p></div><nav><a href="/?mode=storyboard">九宫格分镜生成</a><a class="active" href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=system">系统信息</a></nav></header>
+    <header><div><small>COMFYUI · MINIMAX H3</small><h1>I2V 首帧生视频</h1><p>上传首帧图片与提示词，直接提交 MiniMax H3 I2V 工作流。</p></div><nav><a href="/?mode=storyboard">九宫格分镜生成</a><a class="active" href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
     <main class="layout">
       <section class="card form"><h2>生成设置</h2>
         <label>ComfyUI 服务地址<input v-model.trim="server" /></label>

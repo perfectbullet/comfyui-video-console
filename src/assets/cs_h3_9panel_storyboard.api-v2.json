@@ -134,7 +134,7 @@
   },
   "127": {
     "inputs": {
-      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "unet_name": "minimax/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -155,7 +155,7 @@
   },
   "129": {
     "inputs": {
-      "noise_seed": 295433039006554
+      "noise_seed": 521283608101208
     },
     "class_type": "RandomNoise",
     "_meta": {
@@ -189,7 +189,7 @@
       "timeline_data": "{\"version\":5,\"updatedAt\":1787127269756,\"globalPrompt\":\"\",\"allReferencePrompt\":\"\",\"gridImage\":null,\"items\":[{\"id\":\"storyboard_0\",\"source\":\"storyboard\",\"scope\":\"grid\",\"track\":\"visual\",\"gridIndex\":0,\"kind\":\"image\",\"name\":\"宫格分镜 1\",\"start\":0,\"duration\":0.7142857142857143,\"prompt\":\"\",\"sound\":\"\"},{\"id\":\"storyboard_1\",\"source\":\"storyboard\",\"scope\":\"grid\",\"track\":\"visual\",\"gridIndex\":1,\"kind\":\"image\",\"name\":\"宫格分镜 2\",\"start\":0.7142857142857143,\"duration\":0.7142857142857143,\"prompt\":\"\",\"sound\":\"\"},{\"id\":\"storyboard_2\",\"source\":\"storyboard\",\"scope\":\"grid\",\"track\":\"visual\",\"gridIndex\":2,\"kind\":\"image\",\"name\":\"宫格分镜 3\",\"start\":1.4285714285714286,\"duration\":0.7142857142857143,\"prompt\":\"\",\"sound\":\"\"},{\"id\":\"storyboard_3\",\"source\":\"storyboard\",\"scope\":\"grid\",\"track\":\"visual\",\"gridIndex\":3,\"kind\":\"image\",\"name\":\"宫格分镜 4\",\"start\":2.142857142857143,\"duration\":0.7142857142857143,\"prompt\":\"\",\"sound\":\"\"},{\"id\":\"storyboard_4\",\"source\":\"storyboard\",\"scope\":\"grid\",\"track\":\"visual\",\"gridIndex\":4,\"kind\":\"image\",\"name\":\"宫格分镜 5\",\"start\":2.857142857142857,\"duration\":0.7142857142857143,\"prompt\":\"\",\"sound\":\"\"},{\"id\":\"storyboard_5\",\"source\":\"storyboard\",\"scope\":\"grid\",\"track\":\"visual\",\"gridIndex\":5,\"kind\":\"image\",\"name\":\"宫格分镜 6\",\"start\":3.5714285714285716,\"duration\":0.7142857142857143,\"prompt\":\"\",\"sound\":\"\"}],\"selectedId\":\"storyboard_0\",\"motionTrackEnabled\":true,\"audioTrackEnabled\":true,\"hiddenStoryboardIndices\":[]}",
       "grid_layout": "3x3 九宫格",
       "grid_border_crop": 1,
-      "output_megapixels": 0.6,
+      "output_megapixels": 1.8,
       "resolution_multiple": 32,
       "global_prompt": "",
       "cs_h3_director_ui": "",

@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <header><div><small>COMFYUI · CS-H3</small><h1>九宫格分镜视频生成（九图版）</h1><p>上传 9 张独立分镜图片，作为同一条 CSH3MultimodalDirector 时间线，生成一段完整 MP4。</p></div><nav><a href="/?mode=storyboard">九宫格分镜生成</a><a href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a class="active" href="/?mode=nine-images">九图分镜版</a><a href="/?mode=system">系统信息</a></nav></header>
+    <header><div><small>COMFYUI · CS-H3</small><h1>九宫格分镜视频生成（九图版）</h1><p>上传分镜图片（1–9 张均可），作为同一条 CSH3MultimodalDirector 时间线，生成一段完整 MP4。</p></div><nav><a href="/?mode=storyboard">九宫格分镜生成</a><a href="/?mode=i2v">I2V 首帧生视频</a><a href="/?mode=director">多模式导演台</a><a class="active" href="/?mode=nine-images">九图分镜版</a><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a></nav></header>
     <main>
       <section class="card settings">
         <h2>生成设置</h2>
@@ -15,8 +15,8 @@
         <p class="hint">时间线总时长 <b>{{ totalDuration.toFixed(2) }}</b> 秒（目标时长允许 4–15 秒）。</p>
       </section>
       <section class="card storyboard">
-        <div class="title"><div><h2>九格分镜提示词+图片+时长</h2><p>每格上传独立图片并填写提示词与时长；九段按分镜 1–9 顺序串成同一条时间线。</p></div><span>{{ uploaded }}/9 已上传</span></div>
-        <label class="batch">批量上传分镜图片<em>推荐</em><input type="file" accept="image/png,image/jpeg,image/webp" multiple @change="onBatchImages" /><p class="tip">多选 9 张后按<b>文件名顺序</b>自动填入分镜 1–9（如 1.png → 分镜 1，9.png → 分镜 9）。</p></label>
+        <div class="title"><div><h2>九格分镜提示词+图片+时长</h2><p>每格上传独立图片并填写提示词与时长；已填的分镜按顺序串成同一条时间线（可只填 1 格或多格）。</p></div><span>{{ uploaded }}/9 已上传</span></div>
+        <label class="batch">批量上传分镜图片<em>推荐</em><input type="file" accept="image/png,image/jpeg,image/webp" multiple @change="onBatchImages" /><p class="tip">多选 1–9 张后按<b>文件名顺序</b>自动填入分镜 1–N（如 1.png → 分镜 1，9.png → 分镜 9），可只传部分。</p></label>
         <div class="shots">
           <div v-for="(shot, i) in shots" :key="i" class="shot">
             <div class="shot-head">分镜 {{ i + 1 }}<span>第 {{ startOf(i).toFixed(2) }} 秒起</span></div>
@@ -63,13 +63,13 @@ const defaultShotPrompts=[
 '强光逐渐消散，显现夜晚高楼天台，同一只咖啡杯放在安全的桌面前景，远处城市灯海闪烁。镜头从杯子近景缓慢上抬，逐步露出城市天际线，空气中有轻微雾气和真实夜景光晕。镜头稳定、宏大但克制，最后镜头继续向天空抬升。',
 '镜头继续向上抬升，城市夜空逐渐变成清晰壮丽的银河，同一只咖啡杯仍位于画面下方，杯口升起的热气逐渐化成细微发光粒子并飘向星空。银河缓慢流动，星光自然闪烁，不要夸张爆炸特效。镜头随后缓慢向咖啡杯重新下降，发光粒子逐渐汇聚成暖色光芒。',
 '发光粒子逐渐化成室内台灯的暖黄色光芒，同一只咖啡杯安静放在木质桌面中央，旁边可以有打开的书本或电脑，但不要出现可读文字。镜头缓慢向后拉远，杯口仍有轻微热气，室内环境温暖安静。最终画面停留在咖啡杯和暖光中，运动逐渐停止，形成完整收尾。']
-const server=ref('http://192.168.8.231:8188'), aspectRatio=ref('16:9 横屏'), gridLayout=ref('3x3 九宫格'), megapixels=ref(.6), resolutionMultiple=ref(32), globalPrompt=ref(defaultGlobalPrompt)
+const server=ref('https://u1114350-7877bd0c3a5b.bjb2.seetacloud.com:8443'), aspectRatio=ref('16:9 横屏'), gridLayout=ref('3x3 九宫格'), megapixels=ref(1.8), resolutionMultiple=ref(32), globalPrompt=ref(defaultGlobalPrompt)
 const shots=ref(Array.from({length:9},(_,i)=>({file:null,preview:'',prompt:defaultShotPrompts[i],duration:1})))
 const running=ref(false), job=ref(null), gridImage=ref(null)
 const uploaded=computed(()=>shots.value.filter(s=>s.file||s.uploadedPath).length)
-const totalDuration=computed(()=>shots.value.reduce((a,s)=>a+(Number(s.duration)||0),0))
+const totalDuration=computed(()=>shots.value.reduce((a,s)=>a+((s.file||s.uploadedPath)?(Number(s.duration)||0):0),0))
 const statusName=computed(()=>({uploading:'上传中',queued:'等待中',running:'生成中',completed:'已完成',error:'失败'}[job.value?.status]||'处理中'))
-const startOf=i=>shots.value.slice(0,i).reduce((a,s)=>a+(Number(s.duration)||0),0)
+const startOf=i=>shots.value.slice(0,i).reduce((a,s)=>a+((s.file||s.uploadedPath)?(Number(s.duration)||0):0),0)
 
 function assign(i,file){const s=shots.value[i];if(s.preview)URL.revokeObjectURL(s.preview);s.file=file;s.preview=URL.createObjectURL(file)}
 function onImage(i,e){const f=e.target.files?.[0];if(f)assign(i,f);e.target.value=''}
@@ -83,7 +83,7 @@ function onBatchImages(e){
 }
 function director(w){const n=Object.values(w).find(n=>n.class_type==='CSH3MultimodalDirector');if(!n)throw Error('未找到 CSH3MultimodalDirector 节点');return n.inputs}
 async function dimensions(file){const url=URL.createObjectURL(file);try{const image=new Image();image.src=url;await image.decode();return {width:image.naturalWidth,height:image.naturalHeight}}finally{URL.revokeObjectURL(url)}}
-function validate(){for(let i=0;i<9;i++){const s=shots.value[i];if(!s.file&&!s.uploadedPath)return `分镜 ${i+1} 还未上传图片。`;const d=Number(s.duration);if(!isFinite(d)||d<=0)return `分镜 ${i+1} 的时长无效，请填写大于 0 的秒数。`;if(d>15)return `分镜 ${i+1} 的时长为 ${d} 秒，超出单段上限 15 秒。`}const total=totalDuration.value;if(total<4||total>15)return `九段总时长为 ${total.toFixed(2)} 秒，目标时长需在 4–15 秒之间。`;return ''}
+function validate(){const filled=shots.value.filter(s=>s.file||s.uploadedPath);if(!filled.length)return '请至少上传 1 张分镜图片。';for(let i=0;i<9;i++){const s=shots.value[i];if(!s.file&&!s.uploadedPath)continue;const d=Number(s.duration);if(!isFinite(d)||d<=0)return `分镜 ${i+1} 的时长无效，请填写大于 0 的秒数。`;if(d>15)return `分镜 ${i+1} 的时长为 ${d} 秒，超出单段上限 15 秒。`}const total=totalDuration.value;if(total<4||total>15)return `总时长为 ${total.toFixed(2)} 秒，目标时长需在 4–15 秒之间。`;return ''}
 async function uploadFile(file,label){const unique=`${Date.now()}_${Math.random().toString(16).slice(2,8)}_${file.name}`,body=new FormData();body.append('image',file,unique);body.append('type','input');const r=await fetch(`${server.value}/upload/image`,{method:'POST',body});if(!r.ok)throw Error(`${label}上传失败：HTTP ${r.status}`);const data=await r.json();const sub=(data.subfolder||'').replace(/\\/g,'/').replace(/\/$/,'');return sub?`${sub}/${data.name}`:data.name}
 function uploadOne(i){return uploadFile(shots.value[i].file,`分镜 ${i+1} 图`)}
 async function composeGrid(){
@@ -91,6 +91,7 @@ async function composeGrid(){
   const ctx=canvas.getContext('2d');ctx.fillStyle='#101825';ctx.fillRect(0,0,side,side)
   for(let i=0;i<9;i++){
     const s=shots.value[i]
+    if(!s.file&&!s.preview)continue
     const url=s.file?URL.createObjectURL(s.file):s.preview
     try{
       const image=new Image();image.crossOrigin='anonymous';image.src=url;await image.decode()
@@ -103,12 +104,14 @@ async function composeGrid(){
   return {file:new File([blob],`nine_grid_${Date.now()}.png`,{type:'image/png'}),width:side,height:side}
 }
 function timelineData(inputs){
-  const t=JSON.parse(inputs.timeline_data);let start=0
-  t.items=shots.value.map((s,i)=>{
-    const d=Number(s.duration),item={id:`image_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,kind:'image',file:s.uploadedPath,name:s.file.name,width:s.size.width,height:s.size.height,mediaDuration:0,hasAudio:false,includeAudio:false,scope:'grid',track:'visual',start,duration:d,prompt:s.prompt,sound:''}
-    start+=d;return item
+  const t=JSON.parse(inputs.timeline_data);let start=0,items=[]
+  shots.value.forEach((s,i)=>{
+    if(!s.file&&!s.uploadedPath)return
+    const d=Number(s.duration)
+    items.push({id:`image_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,kind:'image',file:s.uploadedPath,name:s.file?s.file.name:(s.remoteName||`分镜 ${i+1}`),width:s.size?.width||0,height:s.size?.height||0,mediaDuration:0,hasAudio:false,includeAudio:false,scope:'grid',track:'visual',start,duration:d,prompt:s.prompt,sound:''})
+    start+=d
   })
-  t.updatedAt=Date.now();t.selectedId=t.items[0].id;t.globalPrompt=globalPrompt.value;t.gridImage=gridImage.value;t.hiddenStoryboardIndices=[0,1,2,3,4,5,6,7,8];return t
+  t.items=items;t.updatedAt=Date.now();t.selectedId=t.items[0].id;t.globalPrompt=globalPrompt.value;t.gridImage=gridImage.value;t.hiddenStoryboardIndices=[0,1,2,3,4,5,6,7,8];return t
 }
 function workflow(){
   const w=structuredClone(workflowTemplate),i=director(w)
@@ -118,13 +121,13 @@ function workflow(){
 async function submit(){
   const problem=validate();if(problem)return alert(problem)
   if(!globalPrompt.value.trim()&&!shots.value.some(s=>s.prompt.trim()))return alert('请填写全局创作要求，或至少一段分镜提示词。')
-  running.value=true;job.value={status:'uploading',id:'',log:'正在上传 9 张分镜图片…',video:''}
+  running.value=true;job.value={status:'uploading',id:'',log:'正在上传分镜图片…',video:''}
   try{
     for(let i=0;i<9;i++){
       const s=shots.value[i]
+      if(!s.file&&!s.uploadedPath)continue
       if(s.file){s.uploadedPath=await uploadOne(i);s.size=await dimensions(s.file);job.value.log+=`\n分镜 ${i+1} 上传成功：${s.uploadedPath}`}
-      else if(s.uploadedPath){job.value.log+=`\n分镜 ${i+1} 复用服务器原图：${s.uploadedPath}`}
-      else throw Error(`分镜 ${i+1} 没有图片。`)
+      else{job.value.log+=`\n分镜 ${i+1} 复用服务器原图：${s.uploadedPath}`}
     }
     job.value.log+='\n正在自动合成 3x3 宫格底图…'
     const grid=await composeGrid(),gridPath=await uploadFile(grid.file,'宫格底图')
