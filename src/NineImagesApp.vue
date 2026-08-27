@@ -26,7 +26,8 @@
             <label class="dur">时长（秒）<input v-model.number="shot.duration" type="number" min=".1" max="15" step=".05" /></label>
           </div>
         </div>
-        <button :disabled="running" @click="submit">{{ running ? '正在生成…' : '生成完整视频' }}</button>
+        <button :disabled="running" @click="submit">{{ running ? '正在上传并提交…' : '生成完整视频' }}</button>
+        <p class="submit-hint">任务提交后可继续提交，ComfyUI 会在后台队列中依次生成。</p>
       </section>
       <section class="card result"><h2>任务状态</h2><p v-if="!job" class="muted">尚未提交任务。</p><template v-else><p><strong :class="job.status">{{ statusName }}</strong> <code>{{ job.id || '正在上传…' }}</code></p><pre>{{ job.log }}</pre><video v-if="job.video" :src="job.video" controls></video><a v-if="job.video" :href="job.video" target="_blank">打开 / 下载结果</a></template></section>
     </main>
@@ -83,6 +84,7 @@ function onBatchImages(e){
   e.target.value=''
 }
 function director(w){const n=Object.values(w).find(n=>n.class_type==='CSH3MultimodalDirector');if(!n)throw Error('未找到 CSH3MultimodalDirector 节点');return n.inputs}
+function unetName(){const url=server.value.replace(/\/$/,'');return serverOptions.find(option=>option.url===url)?.unetName||'minimax_h3_ref2va_pruned_int8_convrot.safetensors'}
 async function dimensions(file){const url=URL.createObjectURL(file);try{const image=new Image();image.src=url;await image.decode();return {width:image.naturalWidth,height:image.naturalHeight}}finally{URL.revokeObjectURL(url)}}
 function validate(){const filled=shots.value.filter(s=>s.file||s.uploadedPath);if(!filled.length)return '请至少上传 1 张分镜图片。';for(let i=0;i<9;i++){const s=shots.value[i];if(!s.file&&!s.uploadedPath)continue;const d=Number(s.duration);if(!isFinite(d)||d<=0)return `分镜 ${i+1} 的时长无效，请填写大于 0 的秒数。`;if(d>15)return `分镜 ${i+1} 的时长为 ${d} 秒，超出单段上限 15 秒。`}const total=totalDuration.value;if(total<4||total>15)return `总时长为 ${total.toFixed(2)} 秒，目标时长需在 4–15 秒之间。`;return ''}
 async function uploadFile(file,label){const unique=`${Date.now()}_${Math.random().toString(16).slice(2,8)}_${file.name}`,body=new FormData();body.append('image',file,unique);body.append('type','input');const r=await fetch(`${server.value}/upload/image`,{method:'POST',body});if(!r.ok)throw Error(`${label}上传失败：HTTP ${r.status}`);const data=await r.json();const sub=(data.subfolder||'').replace(/\\/g,'/').replace(/\/$/,'');return sub?`${sub}/${data.name}`:data.name}
@@ -116,6 +118,7 @@ function timelineData(inputs){
 }
 function workflow(){
   const w=structuredClone(workflowTemplate),i=director(w)
+  const unet=Object.values(w).find(n=>n.class_type==='UNETLoader');if(unet)unet.inputs.unet_name=unetName()
   i.mode='宫格模式';i.grid_layout='3x3 九宫格';i.duration_seconds=totalDuration.value;i.aspect_ratio=aspectRatio.value;i.output_megapixels=megapixels.value;i.resolution_multiple=resolutionMultiple.value;i.global_prompt=globalPrompt.value
   i.timeline_data=JSON.stringify(timelineData(i));return w
 }
@@ -136,13 +139,13 @@ async function submit(){
     job.value.log+=`\n宫格底图已上传：${gridPath}（仅满足节点宫格模式校验，切格全部隐藏，不参与生成）`
     const w=workflow(),r=await fetch(`${server.value}/prompt`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:w})}),data=await r.json()
     if(!r.ok||data.error)throw Error(data.error?.message||data.error||`提交失败：HTTP ${r.status}`)
-    job.value={status:'queued',id:data.prompt_id,log:`任务已提交：${data.prompt_id}`,video:'',saveIds:Object.entries(w).filter(([,n])=>n.class_type==='SaveVideo').map(([id])=>id)}
-    poll()
+    const submittedJob={status:'queued',id:data.prompt_id,log:`任务已提交：${data.prompt_id}\n已进入后台队列，可继续提交下一条任务。`,video:'',saveIds:Object.entries(w).filter(([,n])=>n.class_type==='SaveVideo').map(([id])=>id)}
+    job.value=submittedJob;running.value=false;poll(submittedJob)
   }catch(e){job.value.status='error';job.value.log+=`\n错误：${e.message}`;running.value=false}
 }
-async function poll(){try{const r=await fetch(`${server.value}/history/${job.value.id}`),data=await r.json(),entry=data[job.value.id];if(!entry){job.value.status='queued';job.value.log+='\n等待 GPU 调度…'}else if(entry.status?.status_str==='error'){throw Error('ComfyUI 执行失败')}else if(entry.status?.completed){job.value.status='completed';job.value.video=output(entry.outputs||{});job.value.log+=job.value.video?'\n视频已生成。':'\n执行完成，但未找到视频输出。';running.value=false;return}else{job.value.status='running';job.value.log+='\n正在生成…'}setTimeout(poll,2500)}catch(e){job.value.status='error';job.value.log+=`\n错误：${e.message}`;running.value=false}}
-function output(outputs){
-  const nodes=[...(job.value.saveIds||[]).map(id=>outputs[id]),...Object.values(outputs)]
+async function poll(task){try{const r=await fetch(`${server.value}/history/${task.id}`),data=await r.json(),entry=data[task.id];if(!entry){task.status='queued';task.log+='\n等待 GPU 调度…'}else if(entry.status?.status_str==='error'){throw Error('ComfyUI 执行失败')}else if(entry.status?.completed){task.status='completed';task.video=output(entry.outputs||{},task);task.log+=task.video?'\n视频已生成。':'\n执行完成，但未找到视频输出。';return}else{task.status='running';task.log+='\n正在生成…'}setTimeout(()=>poll(task),2500)}catch(e){task.status='error';task.log+=`\n错误：${e.message}`}}
+function output(outputs,task){
+  const nodes=[...(task.saveIds||[]).map(id=>outputs[id]),...Object.values(outputs)]
   for(const node of nodes){
     if(!node)continue
     for(const key of ['videos','images','gifs']){
@@ -157,4 +160,5 @@ function output(outputs){
 
 <style>
 :root{font-family:Inter,system-ui,"Microsoft YaHei",sans-serif;color:#e7edf7;background:#101825}*{box-sizing:border-box}body{margin:0}.app{max-width:1450px;margin:auto;padding:30px}header{display:flex;justify-content:space-between;gap:20px;margin:10px 0 28px}header small{color:#7dd3fc;letter-spacing:.12em;font-weight:700}h1{margin:8px 0;font-size:32px}h2{margin:0 0 12px;font-size:18px}header p,.title p,.muted,.hint{color:#9eb0cb;margin:0}header b{height:max-content;color:#bbf7d0;background:#163827;border:1px solid #2c6949;padding:8px 12px;border-radius:99px;font-size:13px}nav{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}nav a{color:#c9d5e7;text-decoration:none;font-size:13px;font-weight:600;padding:8px 12px;border-radius:99px;border:1px solid #2a3a53;white-space:nowrap}nav a.active{color:#062034;background:linear-gradient(90deg,#67e8f9,#38bdf8);border-color:transparent}main{display:grid;grid-template-columns:390px 1fr;gap:20px}.card{background:#172233;border:1px solid #2a3a53;border-radius:16px;padding:22px;box-shadow:0 16px 40px #0002}.settings{grid-row:span 2}.result{grid-column:2}label{display:block;color:#c9d5e7;font-size:13px;font-weight:600;margin-top:14px}em{color:#fbbf24;font-style:normal}input,select,textarea{width:100%;margin-top:7px;color:#ecf5ff;background:#0f1725;border:1px solid #3a4e6d;border-radius:8px;padding:10px;font:inherit}textarea{resize:vertical;line-height:1.45}.params{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.hint{margin-top:14px}.hint b{color:#7dd3fc}.title{display:flex;justify-content:space-between;gap:15px}.title span{color:#7dd3fc;font-size:13px;white-space:nowrap}.batch{display:block;margin-top:16px;padding:12px;background:#0e1726;border:1px dashed #3a5c8a;border-radius:10px;color:#9ec5fd}.batch .tip{margin:8px 0 0;color:#7d93b5;font-size:12px;font-weight:400}.batch .tip b{color:#7dd3fc}.batch input{margin-top:7px}.shots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.shot{display:flex;flex-direction:column;padding:10px;background:#111a28;border:1px solid #2a3a53;border-radius:10px}.shot-head{display:flex;justify-content:space-between;align-items:center;color:#7dd3fc;font-size:13px;font-weight:700;margin:2px 0 6px}.shot-head span{color:#9eb0cb;font-weight:400;font-size:12px}.shot label{margin-top:8px}.shot .pick em{margin-left:6px}.preview{width:100%;height:120px;object-fit:cover;margin-top:8px;background:#0b1019;border:1px solid #3a4e6d;border-radius:8px}.shot textarea{min-height:66px;font-size:13px}.dur input{margin-top:5px}button{width:100%;margin-top:20px;border:0;padding:13px;border-radius:10px;font-size:15px;font-weight:700;color:#062034;background:linear-gradient(90deg,#67e8f9,#38bdf8);cursor:pointer}button:disabled{opacity:.55;cursor:wait}strong{padding:5px 10px;border-radius:99px;font-size:12px}.uploading,.queued{color:#fde68a;background:#41381d}.running{color:#bfdbfe;background:#1e3a5f}.completed{color:#bbf7d0;background:#163827}.error{color:#fecaca;background:#3f1d1d}code{color:#93c5fd;font-size:12px;word-break:break-all}pre{white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto;background:#0b1019;border:1px solid #2a3a53;border-radius:10px;padding:12px;color:#c9d5e7;font-size:12px}video{width:100%;margin-top:14px;border-radius:12px;background:#000}a{color:#7dd3fc}
+.submit-hint{margin:9px 0 0;color:#9eb0cb;font-size:12px;text-align:center}
 </style>

@@ -1,14 +1,17 @@
 [
   {
     "label": "autodl CS-H3（RTX 5090）",
-    "url": "https://u1114350-7877bd0c3a5b.bjb2.seetacloud.com:8443"
+    "url": "https://u1114350-7877bd0c3a5b.bjb2.seetacloud.com:8443",
+    "unetName": "minimax/minimax_h3_ref2va_pruned_int8_convrot.safetensors"
   },
   {
     "label": "231 ComfyUI",
-    "url": "http://192.168.8.231:8188"
+    "url": "http://192.168.8.231:8188",
+    "unetName": "minimax_h3_ref2va_pruned_int8_convrot.safetensors"
   },
   {
     "label": "203 ComfyUI",
-    "url": "http://192.168.100.203:8188"
+    "url": "http://192.168.100.203:8188",
+    "unetName": "minimax_h3_ref2va_pruned_int8_convrot.safetensors"
   }
 ]
