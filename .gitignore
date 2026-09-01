@@ -17,3 +17,4 @@ npm-debug.log*
 .vite/
 .env
 .env.local
+src/assets/*
