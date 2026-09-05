@@ -22,8 +22,8 @@
         <template v-else>
           <div v-for="t in filteredTasks" :key="t.prompt_id" class="task">
             <div class="title">
-              <div><h3>任务 {{ t.prompt_id.slice(0, 8) }}</h3><span>生成服务：{{ t.serverName }} · {{ inProgress(t.status) ? '提交时间未知' : `${fmtTime(t.start)} → ${fmtTime(t.end)}（${durText(t)}）` }}</span></div>
-              <div class="task-actions"><strong :class="statusClass(t.status)">{{ statusLabel(t.status) }}</strong><button v-if="t.status === 'running' || t.status === 'queued'" class="cancel" type="button" :disabled="cancelling.has(t.prompt_id)" @click="cancelTask(t)">{{ cancelling.has(t.prompt_id) ? '正在取消…' : '取消任务' }}</button></div>
+              <div><h3>任务 {{ t.prompt_id.slice(0, 8) }}</h3><span>生成服务：{{ t.serverName }} · {{ inProgress(t.status) ? `提交于 ${fmtTime(t.start)}` : `${fmtTime(t.start)} → ${fmtTime(t.end)}（${durText(t)}）` }}</span></div>
+              <div class="task-actions"><strong :class="statusClass(t.status)">{{ statusLabel(t.status) }}</strong><button class="rerun" type="button" :disabled="rerunning.has(t.prompt_id)" @click="rerunTask(t)">{{ rerunning.has(t.prompt_id) ? '正在重新提交…' : '重新运行' }}</button><button v-if="t.status === 'running' || t.status === 'queued'" class="cancel" type="button" :disabled="cancelling.has(t.prompt_id)" @click="cancelTask(t)">{{ cancelling.has(t.prompt_id) ? '正在取消…' : '取消任务' }}</button><button class="delete" type="button" :disabled="deleting.has(t.prompt_id)" @click="deleteTask(t)">{{ deleting.has(t.prompt_id) ? '正在删除…' : '删除任务' }}</button></div>
             </div>
             <p><code>{{ t.prompt_id }}</code></p>
             <template v-if="t.videos && t.videos.length">
@@ -48,12 +48,14 @@ const selectedServer = ref(server.value)
 const running = ref([]), pending = ref([]), completed = ref([])
 const filter = ref('all')
 const cancelling = ref(new Set())
+const deleting = ref(new Set())
+const rerunning = ref(new Set())
 const serverChecking = ref(false)
 const serverError = ref('')
 let timer = null
 
 const successful = status => ['success', 'completed', 'archived'].includes(status)
-const failed = status => ['error', 'failed', 'interrupted', 'archive_failed'].includes(status)
+const failed = status => ['error', 'failed', 'interrupted', 'lost', 'archive_failed'].includes(status)
 const inProgress = status => ['running', 'queued', 'archiving'].includes(status)
 const errorCount = computed(() => completed.value.filter(t => failed(t.status)).length)
 const allTasks = computed(() => [...running.value, ...pending.value, ...completed.value].sort((a, b) => {
@@ -61,12 +63,22 @@ const allTasks = computed(() => [...running.value, ...pending.value, ...complete
   return (b.end || b.start || 0) - (a.end || a.start || 0)
 }))
 const filteredTasks = computed(() => filter.value === 'all' ? allTasks.value : allTasks.value.filter(t => filter.value === 'success' ? successful(t.status) : filter.value === 'error' ? failed(t.status) : t.status === filter.value))
-function statusLabel(status) { return ({ running: '运行中', queued: '排队中', archiving: '正在归档', archived: '已归档', archive_failed: '归档失败', completed: '生成完成', success: '成功', failed: '失败', interrupted: '已中断', error: '失败' })[status] || '处理中' }
+function statusLabel(status) { return ({ running: '运行中', queued: '排队中', archiving: '正在归档', archived: '已归档', archive_failed: '归档失败', completed: '生成完成', success: '成功', failed: '失败', interrupted: '已中断', lost: '源任务已丢失', error: '失败' })[status] || '处理中' }
 function statusClass(status) { return successful(status) ? 'completed' : failed(status) ? 'error' : status }
 function setCancelling(promptId, value) {
   const next = new Set(cancelling.value)
   value ? next.add(promptId) : next.delete(promptId)
   cancelling.value = next
+}
+function setDeleting(promptId, value) {
+  const next = new Set(deleting.value)
+  value ? next.add(promptId) : next.delete(promptId)
+  deleting.value = next
+}
+function setRerunning(promptId, value) {
+  const next = new Set(rerunning.value)
+  value ? next.add(promptId) : next.delete(promptId)
+  rerunning.value = next
 }
 
 function viewUrl(v, task) {
@@ -123,6 +135,40 @@ async function cancelTask(task) {
     window.alert(e.message)
   } finally {
     setCancelling(task.prompt_id, false)
+  }
+}
+async function deleteTask(task) {
+  const warning = inProgress(task.status) ? '\n该操作不会取消 ComfyUI 中正在执行的任务。' : ''
+  if (!window.confirm(`确认删除归档任务？\n${task.prompt_id}${warning}\n\n将删除归档记录和已缓存的视频，且无法恢复。`)) return
+  setDeleting(task.prompt_id, true)
+  try {
+    const response = await fetch(`${archiveBase}/api/tasks/${encodeURIComponent(task.prompt_id)}`, { method: 'DELETE' })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw Error(data.detail || `删除失败：HTTP ${response.status}`)
+    await load()
+  } catch (e) {
+    window.alert(e.message)
+  } finally {
+    setDeleting(task.prompt_id, false)
+  }
+}
+async function rerunTask(task) {
+  const target = selectedServerOption()
+  if (!target) return window.alert('请从常用服务列表选择重新运行的目标 ComfyUI 服务。')
+  if (!window.confirm(`确认将任务重新运行到 ${target.label}？\n\n来源任务：${task.prompt_id}\n将重新上传归档中的原始图片，并创建新的任务 ID。`)) return
+  setRerunning(task.prompt_id, true)
+  try {
+    const response = await fetch(`${archiveBase}/api/tasks/${encodeURIComponent(task.prompt_id)}/rerun`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ server_id: target.id }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw Error(data.detail || `重新运行失败：HTTP ${response.status}`)
+    window.alert(`已重新提交到 ${target.label}。\n新任务 ID：${data.prompt_id}`)
+    await load()
+  } catch (e) {
+    window.alert(e.message)
+  } finally {
+    setRerunning(task.prompt_id, false)
   }
 }
 async function load() {
@@ -202,8 +248,12 @@ code { color: #c9d5e7; font-size: 12px; word-break: break-all }
 .title { display: flex; justify-content: space-between; gap: 14px; align-items: center; flex-wrap: wrap }
 .task-actions { display: flex; align-items: center; gap: 8px }
 .task-actions strong { white-space: nowrap; word-break: keep-all; writing-mode: horizontal-tb }
+.rerun { padding: 5px 10px; border: 1px solid #245b77; border-radius: 99px; color: #bae6fd; background: #173c55; font: inherit; font-size: 12px; cursor: pointer }
+.rerun:disabled { opacity: .55; cursor: wait }
 .cancel { padding: 5px 10px; border: 1px solid #71323d; border-radius: 99px; color: #fecaca; background: #3f1d1d; font: inherit; font-size: 12px; cursor: pointer }
 .cancel:disabled { opacity: .55; cursor: wait }
+.delete { padding: 5px 10px; border: 1px solid #7f1d1d; border-radius: 99px; color: #fee2e2; background: #7f1d1d; font: inherit; font-size: 12px; cursor: pointer }
+.delete:disabled { opacity: .55; cursor: wait }
 .title h3 { margin: 0; font-size: 15px; color: #7dd3fc }
 .title span { color: #9eb0cb; font-size: 12px }
 video { display: block; width: 320px; max-width: 100%; background: #000; border-radius: 8px; margin-top: 10px }
