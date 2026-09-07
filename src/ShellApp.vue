@@ -117,7 +117,7 @@ function onPopState() {
   mode.value = routeMode();
 }
 
-// 任务管理 setRerunTask 后切到九图；九图组件已常驻，可立刻读 store 填表
+// 任务管理 setRerunTask 后切到九图；九图组件可立刻读 store 填表
 watch(
   () => taskStore.rerunTask,
   (task) => {

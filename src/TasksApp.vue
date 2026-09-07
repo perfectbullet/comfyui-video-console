@@ -198,15 +198,15 @@ import {
   onActivated,
   onDeactivated,
 } from "vue";
-import serverOptions from "./assets/comfyui_servers.json";
 import { useTaskStore } from "./store/task";
 const taskStore = useTaskStore();
 
 const archiveBase = (
   import.meta.env.VITE_ARCHIVER_URL || "http://192.168.8.231:8610"
 ).replace(/\/$/, "");
-const server = ref(serverOptions[0].url);
-const selectedServer = ref(server.value);
+const serverOptions = ref([]);
+const server = ref("");
+const selectedServer = ref("");
 const running = ref([]),
   pending = ref([]),
   completed = ref([]);
@@ -322,7 +322,20 @@ function onServerInput() {
 }
 function selectedServerOption() {
   const base = server.value.replace(/\/$/, "");
-  return serverOptions.find((option) => option.url.replace(/\/$/, "") === base);
+  return serverOptions.value.find(
+    (option) => option.url.replace(/\/$/, "") === base,
+  );
+}
+async function loadServers() {
+  const response = await fetch(`${archiveBase}/api/comfyui-servers`);
+  if (!response.ok)
+    throw Error(`服务列表响应异常：HTTP ${response.status}`);
+  const list = await response.json();
+  serverOptions.value = Array.isArray(list) ? list : [];
+  if (!server.value && serverOptions.value[0]?.url) {
+    server.value = serverOptions.value[0].url;
+    selectedServer.value = server.value;
+  }
 }
 function archiveTask(task) {
   return {
@@ -509,10 +522,15 @@ async function load() {
     serverChecking.value = false;
   }
 }
-const init = () => {
+const init = async () => {
   if (refreshTimer) {
     clearInterval(refreshTimer);
     refreshTimer = null;
+  }
+  try {
+    await loadServers();
+  } catch (e) {
+    console.error("加载服务列表失败", e);
   }
   load();
   refreshTimer = setInterval(load, 5000);
