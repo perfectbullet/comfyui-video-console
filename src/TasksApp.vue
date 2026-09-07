@@ -143,6 +143,7 @@
                 v-for="(v, i) in t.videos"
                 :key="i"
                 :src="viewUrl(v, t)"
+                preload="none"
                 controls
               ></video>
               <p class="row-action">
@@ -164,6 +165,25 @@
             </p>
           </div>
         </template>
+        <div v-if="totalPages > 0" class="pager">
+          <button
+            type="button"
+            :disabled="!hasPrevious || loading"
+            @click="goToPage(page - 1)"
+          >
+            上一页
+          </button>
+          <span class="pager-info"
+            >第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条</span
+          >
+          <button
+            type="button"
+            :disabled="!hasNext || loading"
+            @click="goToPage(page + 1)"
+          >
+            下一页
+          </button>
+        </div>
       </section>
     </main>
   </div>
@@ -191,6 +211,13 @@ const running = ref([]),
   pending = ref([]),
   completed = ref([]);
 const filter = ref("all");
+const page = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const totalPages = ref(0);
+const hasPrevious = ref(false);
+const hasNext = ref(false);
+const loading = ref(false);
 const cancelling = ref(new Set());
 const deleting = ref(new Set());
 const rerunning = ref(new Set());
@@ -280,6 +307,13 @@ function durText(t) {
 function chooseServer() {
   if (!selectedServer.value) return;
   server.value = selectedServer.value;
+  page.value = 1;
+  load();
+}
+function goToPage(nextPage) {
+  const target = Math.max(1, Math.min(nextPage, totalPages.value || 1));
+  if (target === page.value) return;
+  page.value = target;
   load();
 }
 function onServerInput() {
@@ -399,23 +433,65 @@ async function rerunTaskOld(task) {
     setRerunning(task.prompt_id, false);
   }
 }
+function parseTasksPayload(data) {
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      pagination: {
+        page: 1,
+        page_size: data.length,
+        total: data.length,
+        total_pages: data.length ? 1 : 0,
+        has_previous: false,
+        has_next: false,
+      },
+    };
+  }
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const pagination = data?.pagination || {};
+  return {
+    items,
+    pagination: {
+      page: pagination.page ?? page.value,
+      page_size: pagination.page_size ?? pageSize.value,
+      total: pagination.total ?? items.length,
+      total_pages: pagination.total_pages ?? (items.length ? 1 : 0),
+      has_previous: Boolean(pagination.has_previous),
+      has_next: Boolean(pagination.has_next),
+    },
+  };
+}
 async function load() {
   const base = server.value.trim().replace(/\/$/, "");
   if (!base) {
     serverError.value = "请输入 ComfyUI 服务地址。";
     return;
   }
+  if (loading.value) return;
+  loading.value = true;
   serverChecking.value = true;
   try {
+    const tasksUrl = new URL(`${archiveBase}/api/tasks`);
+    tasksUrl.searchParams.set("page", String(page.value));
+    tasksUrl.searchParams.set("page_size", String(pageSize.value));
     const [statsResult, archivedResult] = await Promise.allSettled([
       fetch(`${base}/system_stats`),
-      fetch(`${archiveBase}/api/tasks?limit=20`),
+      fetch(tasksUrl),
     ]);
     if (archivedResult.status === "rejected") throw archivedResult.reason;
     const archivedResponse = archivedResult.value;
     if (!archivedResponse.ok)
       throw Error(`任务归档服务响应异常：HTTP ${archivedResponse.status}`);
-    const archivedTasks = (await archivedResponse.json()).map(archiveTask);
+    const { items, pagination } = parseTasksPayload(
+      await archivedResponse.json(),
+    );
+    const archivedTasks = items.map(archiveTask);
+    page.value = pagination.page;
+    pageSize.value = pagination.page_size;
+    total.value = pagination.total;
+    totalPages.value = pagination.total_pages;
+    hasPrevious.value = pagination.has_previous;
+    hasNext.value = pagination.has_next;
     running.value = archivedTasks.filter((task) => task.status === "running");
     pending.value = archivedTasks.filter((task) => task.status === "queued");
     completed.value = archivedTasks.filter(
@@ -429,6 +505,7 @@ async function load() {
     console.error("加载任务失败", e);
     serverError.value = `无法连接 ComfyUI 服务地址：${base}（${e.message || "网络请求失败"}）`;
   } finally {
+    loading.value = false;
     serverChecking.value = false;
   }
 }
@@ -680,5 +757,34 @@ a {
 }
 .row-action {
   margin-top: 6px;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.pager button {
+  width: auto;
+  min-height: 32px;
+  margin: 0;
+  padding: 6px 14px;
+  border: 1px solid #2a3a53;
+  border-radius: 8px;
+  color: #e1e8f7;
+  background: #111a27;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pager button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pager-info {
+  color: #9eb0cb;
+  font-size: 13px;
 }
 </style>

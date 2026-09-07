@@ -21,21 +21,30 @@
     </header>
 
     <section class="workspace">
+      <!-- 九图页常驻挂载：任务管理里写入 store 时组件已在，可直接填表；其它 tab 仍走 KeepAlive -->
+      <div v-show="mode === 'nine-images'">
+        <NineImagesApp />
+      </div>
       <KeepAlive>
-        <component :is="currentTab.component" />
+        <component
+          v-if="mode !== 'nine-images'"
+          :is="currentTab.component"
+          :key="mode"
+        />
       </KeepAlive>
     </section>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import StoryboardApp from "./App.vue";
 import I2VApp from "./I2VApp.vue";
 import NineImagesApp from "./NineImagesApp.vue";
 import SystemInfoApp from "./SystemInfoApp.vue";
 import CSH3App from "./CSH3App.vue";
 import TasksApp from "./TasksApp.vue";
+import { useTaskStore } from "./store/task";
 
 const tabs = [
   {
@@ -94,6 +103,7 @@ const currentTab = computed(
     legacyTabs[mode.value] ||
     tabs[1],
 );
+const taskStore = useTaskStore();
 
 function selectTab(nextMode) {
   if (nextMode === mode.value) return;
@@ -106,6 +116,14 @@ function selectTab(nextMode) {
 function onPopState() {
   mode.value = routeMode();
 }
+
+// 任务管理 setRerunTask 后切到九图；九图组件已常驻，可立刻读 store 填表
+watch(
+  () => taskStore.rerunTask,
+  (task) => {
+    if (task) selectTab("nine-images");
+  },
+);
 
 onMounted(() => window.addEventListener("popstate", onPopState));
 onUnmounted(() => window.removeEventListener("popstate", onPopState));

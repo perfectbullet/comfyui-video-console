@@ -10,47 +10,32 @@
         </p>
       </div>
       <nav>
-        <a href="/?mode=director">多模式导演台</a
-        ><a class="active" href="/?mode=nine-images">九图分镜版</a
-        ><a href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a>
+        <a href="/?mode=director">多模式导演台</a><a class="active" href="/?mode=nine-images">九图分镜版</a><a
+          href="/?mode=tasks">任务管理</a><a href="/?mode=system">系统信息</a>
       </nav>
     </header>
     <main>
       <section class="card settings">
         <h2>生成设置</h2>
-        <label
-          >ComfyUI 服务地址
+        <label>ComfyUI 服务地址
           <div class="server-picker">
-            <select
-              v-model="selectedServer"
-              aria-label="常用 ComfyUI 服务"
-              @change="chooseServer"
-            >
+            <select v-model="selectedServer" aria-label="常用 ComfyUI 服务" @change="chooseServer">
               <option value="">常用服务</option>
-              <option
-                v-for="option in serverOptions"
-                :key="option.url"
-                :value="option.url"
-              >
+              <option v-for="option in serverOptions" :key="option.url" :value="option.url">
                 {{ option.label }}
-              </option></select
-            ><input
-              v-model.trim="server"
-              placeholder="可手动输入 ComfyUI 服务地址"
-              @blur="checkServer"
-              @input="onServerInput"
-            />
+              </option>
+            </select><input v-model.trim="server" placeholder="可手动输入 ComfyUI 服务地址" @blur="checkServer"
+              @input="onServerInput" />
           </div>
           <p v-if="serverChecking" class="server-checking">
             正在检查服务连通性…
           </p>
           <p v-else-if="serverError" class="server-error" role="alert">
             {{ serverError }}
-          </p></label
-        >
+          </p>
+        </label>
         <div class="params">
-          <label
-            >输出比例<select v-model="aspectRatio">
+          <label>输出比例<select v-model="aspectRatio">
               <option>自动</option>
               <option>21:9 超宽屏</option>
               <option>16:9 横屏</option>
@@ -58,42 +43,19 @@
               <option>1:1 方形</option>
               <option>3:4 竖屏</option>
               <option>9:16 竖屏</option>
-            </select></label
-          >
-          <label
-            >宫格格式<select v-model="gridLayout">
+            </select></label>
+          <label>宫格格式<select v-model="gridLayout">
               <option>3x3 九宫格</option>
-            </select></label
-          >
-          <label
-            >输出像素规模（MP）<input
-              v-model.number="megapixels"
-              type="number"
-              min=".1"
-              max="16"
-              step=".1"
-          /></label>
-          <label
-            >尺寸对齐倍数<select v-model.number="resolutionMultiple">
+            </select></label>
+          <label>输出像素规模（MP）<input v-model.number="megapixels" type="number" min=".1" max="16" step=".1" /></label>
+          <label>尺寸对齐倍数<select v-model.number="resolutionMultiple">
               <option :value="16">16</option>
               <option :value="32">32</option>
               <option :value="64">64</option>
-            </select></label
-          >
-          <label
-            >Noise Seed<input
-              v-model.number="noiseSeed"
-              type="number"
-              min="0"
-              step="1"
-          /></label>
+            </select></label>
+          <label>Noise Seed<input v-model.number="noiseSeed" type="number" min="0" step="1" /></label>
         </div>
-        <label
-          >全局创作要求<textarea
-            v-model="globalPrompt"
-            rows="12"
-            placeholder="整体风格、镜头语言、连贯性要求等"
-          />
+        <label>全局创作要求<textarea v-model="globalPrompt" rows="12" placeholder="整体风格、镜头语言、连贯性要求等" />
         </label>
         <p class="hint">
           时间线总时长 <b>{{ totalDuration.toFixed(2) }}</b> 秒（目标时长允许
@@ -111,19 +73,13 @@
           </div>
           <span>{{ uploaded }}/9 已上传</span>
         </div>
-        <label class="batch"
-          >批量上传分镜图片<em>推荐</em
-          ><input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            multiple
-            @change="onBatchImages"
-          />
+        <label class="batch">批量上传分镜图片<em>推荐</em><input type="file" accept="image/png,image/jpeg,image/webp" multiple
+            @change="onBatchImages" />
           <p class="tip">
             多选 1–9 张后按<b>文件名顺序</b>自动填入分镜 1–N（如 1.png → 分镜
             1，9.png → 分镜 9），可只传部分。
-          </p></label
-        >
+          </p>
+        </label>
         <div class="shots">
           <div v-for="(shot, i) in shots" :key="i" class="shot">
             <div class="shot-head">
@@ -131,50 +87,19 @@
             </div>
             <p class="row-upload">
               <span>分镜图片<em>*</em></span>
-              <button
-                @click="handleTriggerUpload(i)"
-                class="btn-upload"
-                v-show="!(shot.file || shot.uploadedPath)"
-              >
+              <button @click="handleTriggerUpload(i)" class="btn-upload" v-show="!(shot.file || shot.uploadedPath)">
                 上传
               </button>
-              <input
-                :id="`upload-input-${i}`"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                @change="onImage(i, $event)"
-                hidden
-              />
-              <button
-                v-if="shot.file || shot.uploadedPath"
-                type="button"
-                class="remove-image"
-                @click="removeImage(i)"
-              >
+              <input :id="`upload-input-${i}`" type="file" accept="image/png,image/jpeg,image/webp"
+                @change="onImage(i, $event)" hidden />
+              <button v-if="shot.file || shot.uploadedPath" type="button" class="remove-image" @click="removeImage(i)">
                 删除图片
               </button>
             </p>
-            <img
-              v-if="shot.preview"
-              :src="shot.preview"
-              class="preview"
-              :alt="`分镜 ${i + 1} 预览`"
-            />
-            <textarea
-              v-model="shot.prompt"
-              rows="3"
-              :placeholder="`第 ${i + 1} 段的提示词`"
-              class="prompt-textarea"
-            />
+            <img v-if="shot.preview" :src="shot.preview" class="preview" :alt="`分镜 ${i + 1} 预览`" />
+            <textarea v-model="shot.prompt" rows="3" :placeholder="`第 ${i + 1} 段的提示词`" class="prompt-textarea" />
             <p class="row-dur">
-              <span>时长（秒）</span
-              ><input
-                v-model.number="shot.duration"
-                type="number"
-                min=".1"
-                max="15"
-                step=".05"
-              />
+              <span>时长（秒）</span><input v-model.number="shot.duration" type="number" min=".1" max="15" step=".05" />
             </p>
           </div>
         </div>
@@ -188,29 +113,29 @@
       <section class="card result">
         <h2>任务状态</h2>
         <p v-if="!job" class="muted">尚未提交任务。</p>
-        <template v-else
-          ><p>
+        <template v-else>
+          <p>
             <strong :class="job.status">{{ statusName }}</strong>
             <code>{{ job.id || "正在上传…" }}</code>
           </p>
           <pre>{{ job.log }}</pre>
-          <video v-if="job.video" :src="job.video" controls></video
-          ><a v-if="job.video" :href="job.video" target="_blank"
-            >打开 / 下载结果</a
-          ></template
-        >
+          <video v-if="job.video" :src="job.video" controls></video><a v-if="job.video" :href="job.video"
+            target="_blank">打开 / 下载结果</a>
+        </template>
       </section>
     </main>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import serverOptions from "./assets/comfyui_servers.json";
 import autodlWorkflow from "./assets/CS-H3多模态参考导演台工作流-by-autodl-app-v1.json";
 import workflow231 from "./assets/CS-H3多模态参考导演台工作流-zj-可修改的-v2-231.json";
 import bjb2Workflow from "./assets/CS-H3多模态参考导演台工作流-Turbo6步-bjb2.json";
+import { useTaskStore } from "./store/task";
 
+const taskStore = useTaskStore();
 const workflowTemplates = {
   "CS-H3多模态参考导演台工作流-by-autodl-app-v1.json": autodlWorkflow,
   "CS-H3多模态参考导演台工作流-zj-可修改的-v2-231.json": workflow231,
@@ -404,9 +329,9 @@ async function uploadFile(file, label, draftId) {
     body.append("server_id", selectedServerOption().id);
     body.append("file", file, unique);
     const r = await fetch(`${archiveBase}/api/task-drafts/${draftId}/files`, {
-        method: "POST",
-        body,
-      }),
+      method: "POST",
+      body,
+    }),
       data = await r.json();
     if (!r.ok)
       throw Error(data.detail || `${label}归档上传失败：HTTP ${r.status}`);
@@ -448,9 +373,9 @@ async function composeGrid() {
         x = col * cell,
         y = row * cell;
       const scale = Math.max(
-          cell / image.naturalWidth,
-          cell / image.naturalHeight,
-        ),
+        cell / image.naturalWidth,
+        cell / image.naturalHeight,
+      ),
         w = image.naturalWidth * scale,
         h = image.naturalHeight * scale;
       ctx.drawImage(image, x + (cell - w) / 2, y + (cell - h) / 2, w, h);
@@ -561,15 +486,15 @@ async function submit() {
         : `${server.value}/prompt`,
       payload = usesArchiver()
         ? {
-            server_id: option.id,
-            draft_id: draftId,
-            prompt: w,
-            request_meta: {
-              mode: "nine-images",
-              service_url: server.value,
-              workflow_file: option.apiFile,
-            },
-          }
+          server_id: option.id,
+          draft_id: draftId,
+          prompt: w,
+          request_meta: {
+            mode: "nine-images",
+            service_url: server.value,
+            workflow_file: option.apiFile,
+          },
+        }
         : { prompt: w },
       r = await fetch(endpoint, {
         method: "POST",
@@ -651,10 +576,87 @@ const handleTriggerUpload = (i) => {
   document.getElementById(`upload-input-${i}`).click();
 };
 
+async function applyRerunTask(task) {
+  if (!task?.prompt_id) return;
+  try {
+    const r = await fetch(
+      `${archiveBase}/api/tasks/${encodeURIComponent(task.prompt_id)}/form`,
+    );
+    if (!r.ok) throw Error(`读取任务表单失败：HTTP ${r.status}`);
+    const form = await r.json();
+    if (form.kind && form.kind !== "nine-images")
+      throw Error("该任务不是九图分镜版，无法回填。");
+
+    const base = (form.server_url || "").replace(/\/$/, "");
+    if (base) {
+      server.value = base;
+      selectedServer.value =
+        serverOptions.find((o) => o.url.replace(/\/$/, "") === base)?.url || "";
+      checkServer();
+    }
+
+    const settings = form.settings || {};
+    aspectRatio.value = settings.aspect_ratio || aspectRatio.value;
+    gridLayout.value = settings.grid_layout || gridLayout.value;
+    megapixels.value = settings.megapixels ?? megapixels.value;
+    resolutionMultiple.value =
+      settings.resolution_multiple ?? resolutionMultiple.value;
+    noiseSeed.value = Number(settings.noise_seed) || noiseSeed.value;
+    globalPrompt.value = settings.global_prompt || "";
+
+    shots.value.forEach((s) => s.preview && URL.revokeObjectURL(s.preview));
+    shots.value = Array.from({ length: 9 }, () => ({
+      file: null,
+      preview: "",
+      prompt: "",
+      duration: 0,
+      uploadedPath: "",
+      remoteName: "",
+      size: null,
+    }));
+
+    await Promise.all(
+      (form.shots || []).map(async (item) => {
+        const i = Number(item.index);
+        if (!Number.isInteger(i) || i < 0 || i > 8) return;
+        const shot = shots.value[i];
+        shot.prompt = item.prompt || "";
+        shot.duration = Number(item.duration) || 0;
+        shot.remoteName = item.name || "";
+        shot.size = { width: item.width || 0, height: item.height || 0 };
+        if (item.archive_url) {
+          try {
+            const img = await fetch(`${archiveBase}${item.archive_url}`);
+            if (img.ok) {
+              assign(
+                i,
+                new File([await img.blob()], item.name || `shot_${i + 1}.jpg`),
+              );
+              return;
+            }
+          } catch {}
+        }
+        if (item.uploaded_path) shot.uploadedPath = item.uploaded_path;
+      }),
+    );
+
+    gridImage.value = null;
+    job.value = null;
+  } catch (e) {
+    alert(e.message || String(e));
+  } finally {
+    taskStore.setRerunTask(null);
+  }
+}
+
+watch(
+  () => taskStore.rerunTask,
+  (task) => {
+    if (task) applyRerunTask(task);
+  },
+);
+
 onMounted(checkServer);
-onUnmounted(() => {
-  EventBus.off("rerunTask");
-});
 </script>
 
 <style scoped>
@@ -667,35 +669,43 @@ onUnmounted(() => {
   border: 1px solid #3a4e6d;
   border-radius: 10px;
 }
+
 .remove-image {
   color: #fecaca;
   background: #3f1d1d;
   border-color: #71323d;
 }
+
 .submit-hint {
   margin: 9px 0 0;
   color: #9eb0cb;
   font-size: 12px;
   text-align: center;
 }
+
 .server-checking,
 .server-error {
   margin: 7px 0 0;
   font-size: 12px;
   font-weight: 400;
 }
+
 .server-checking {
   color: #fde68a;
 }
+
 .server-error {
   color: #fecaca;
 }
+
 .hint {
   margin-top: 10px;
 }
+
 .hint b {
   color: #7dd3fc;
 }
+
 .batch {
   display: block;
   margin-top: 16px;
@@ -705,17 +715,20 @@ onUnmounted(() => {
   border-radius: 10px;
   color: #9ec5fd;
 }
+
 .batch .tip {
   margin: 8px 0 0;
   color: #7d93b5;
   font-size: 12px;
   font-weight: 400;
 }
+
 .btn-submit {
   margin-top: 20px;
   background: linear-gradient(135deg, #7164f5, #5c4de8);
   color: #fff;
 }
+
 .shot {
   display: flex;
   flex-direction: column;
@@ -724,6 +737,7 @@ onUnmounted(() => {
   border: 1px solid #2a3a53;
   border-radius: 10px;
 }
+
 .shot-head {
   display: flex;
   justify-content: space-between;
@@ -733,17 +747,20 @@ onUnmounted(() => {
   margin: 2px 0 6px;
   flex-shrink: 0;
 }
+
 .shot-head span {
   color: #9eb0cb;
   font-weight: 400;
   font-size: 12px;
 }
+
 .shot .row-upload {
   display: flex;
   justify-content: space-between;
   align-items: center;
   color: #7d93b5;
 }
+
 .shot .row-upload button {
   width: auto;
   font-size: 12px;
@@ -752,9 +769,11 @@ onUnmounted(() => {
   border-radius: 4px;
   line-height: 1;
 }
+
 .shot .prompt-textarea {
   flex-grow: 1;
 }
+
 .shot .row-dur {
   margin-top: 6px;
   display: flex;
@@ -762,9 +781,11 @@ onUnmounted(() => {
   align-items: center;
   font-size: 12px;
 }
+
 .shot .row-dur span {
   white-space: nowrap;
 }
+
 .shot .row-dur input {
   width: 50%;
   margin-top: 0;
