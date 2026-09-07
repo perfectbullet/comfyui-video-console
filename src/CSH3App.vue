@@ -105,7 +105,6 @@ async function submitBatch() {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 :global(:root) { font-family: Inter, system-ui, "Microsoft YaHei", sans-serif; color: #e7edf7; background: #101825 }
 :global(body) { margin: 0 }
 .app { max-width: 1450px; margin: auto; padding: 30px }
