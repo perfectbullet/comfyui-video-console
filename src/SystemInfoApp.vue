@@ -19,7 +19,19 @@
     <main class="layout">
       <section class="card settings">
         <h2>服务与刷新</h2>
-        <label>ComfyUI 服务地址<input v-model.trim="server" /></label>
+        <label
+          >ComfyUI 服务地址
+          <select v-model="server" aria-label="常用 ComfyUI 服务" @change="refresh">
+            <option disabled value="">请选择服务</option>
+            <option
+              v-for="option in serverOptions"
+              :key="option.url"
+              :value="option.url"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
         <div class="row">
           <button class="ghost" :disabled="loading" @click="refresh">
             {{ loading ? "刷新中…" : "立即刷新" }}
@@ -123,7 +135,11 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
-const server = ref("http://192.168.8.231:8188");
+const archiveBase = (
+  import.meta.env.VITE_ARCHIVER_URL || "http://192.168.8.231:8610"
+).replace(/\/$/, "");
+const serverOptions = ref([]);
+const server = ref("");
 const stats = ref(null),
   queue = ref({ running: 0, pending: 0 }),
   loading = ref(false);
@@ -149,7 +165,19 @@ const vramUsed = (d) =>
 const gb = (n) => (n / 1024 ** 3).toFixed(1);
 const pct = (a, b) => (b ? Math.min(100, Math.max(0, (a / b) * 100)) : 0);
 
+async function loadServers() {
+  const response = await fetch(`${archiveBase}/api/comfyui-servers`);
+  if (!response.ok)
+    throw Error(`服务列表响应异常：HTTP ${response.status}`);
+  const list = await response.json();
+  serverOptions.value = Array.isArray(list) ? list : [];
+  if (!server.value && serverOptions.value[0]?.url) {
+    server.value = serverOptions.value[0].url;
+  }
+}
+
 async function refresh() {
+  if (!server.value) return;
   loading.value = true;
   try {
     const [rs, rq] = await Promise.all([
@@ -177,6 +205,7 @@ async function refresh() {
 }
 
 async function freeVram() {
+  if (!server.value) return;
   if (
     queueBusy.value &&
     !confirm(
@@ -211,7 +240,13 @@ async function freeVram() {
 function tick() {
   if (auto.value) refresh();
 }
-onMounted(() => {
+onMounted(async () => {
+  try {
+    await loadServers();
+  } catch (e) {
+    freeMsg.value = `服务列表加载失败：${e.message}`;
+    freeOk.value = false;
+  }
   refresh();
   timer.value = setInterval(tick, interval);
 });
@@ -225,7 +260,8 @@ onBeforeUnmount(() => clearInterval(timer.value));
   gap: 20px;
   align-items: start;
 }
-input:not([type="checkbox"]) {
+input:not([type="checkbox"]),
+select {
   width: 100%;
   margin-top: 7px;
   color: #ecf5ff;
