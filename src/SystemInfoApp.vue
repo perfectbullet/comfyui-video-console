@@ -134,10 +134,8 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { fetchComfyuiServers } from "./api/http.js";
 
-const archiveBase = (
-  import.meta.env.VITE_ARCHIVER_URL || "http://192.168.8.231:8610"
-).replace(/\/$/, "");
 const serverOptions = ref([]);
 const server = ref("");
 const stats = ref(null),
@@ -166,11 +164,7 @@ const gb = (n) => (n / 1024 ** 3).toFixed(1);
 const pct = (a, b) => (b ? Math.min(100, Math.max(0, (a / b) * 100)) : 0);
 
 async function loadServers() {
-  const response = await fetch(`${archiveBase}/api/comfyui-servers`);
-  if (!response.ok)
-    throw Error(`服务列表响应异常：HTTP ${response.status}`);
-  const list = await response.json();
-  serverOptions.value = Array.isArray(list) ? list : [];
+  serverOptions.value = await fetchComfyuiServers();
   if (!server.value && serverOptions.value[0]?.url) {
     server.value = serverOptions.value[0].url;
   }

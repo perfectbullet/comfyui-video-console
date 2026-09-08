@@ -129,10 +129,10 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import serverOptions from "./assets/comfyui_servers.json";
 import autodlWorkflow from "./assets/CS-H3多模态参考导演台工作流-by-autodl-app-v1.json";
 import workflow231 from "./assets/CS-H3多模态参考导演台工作流-zj-可修改的-v2-231.json";
 import bjb2Workflow from "./assets/CS-H3多模态参考导演台工作流-Turbo6步-bjb2.json";
+import { archiveBase, fetchComfyuiServers } from "./api/http.js";
 import { useTaskStore } from "./store/task";
 
 const taskStore = useTaskStore();
@@ -141,14 +141,12 @@ const workflowTemplates = {
   "CS-H3多模态参考导演台工作流-zj-可修改的-v2-231.json": workflow231,
   "CS-H3多模态参考导演台工作流-Turbo6步-bjb2.json": bjb2Workflow,
 };
-const archiveBase = (
-  import.meta.env.VITE_ARCHIVER_URL || "http://192.168.8.231:8610"
-).replace(/\/$/, "");
 
 const defaultGlobalPrompt = ``;
 const defaultShotPrompts = Array.from({ length: 9 }, () => "");
-const server = ref(serverOptions[0].url),
-  selectedServer = ref(serverOptions[0].url),
+const serverOptions = ref([]);
+const server = ref(""),
+  selectedServer = ref(""),
   aspectRatio = ref("16:9 横屏"),
   gridLayout = ref("3x3 九宫格"),
   megapixels = ref(2.0),
@@ -281,7 +279,9 @@ function onServerInput() {
 }
 function selectedServerOption() {
   const url = server.value.replace(/\/$/, "");
-  return serverOptions.find((item) => item.url.replace(/\/$/, "") === url);
+  return serverOptions.value.find(
+    (item) => item.url.replace(/\/$/, "") === url,
+  );
 }
 function selectedWorkflow() {
   return workflowTemplates[selectedServerOption()?.apiFile] || workflow231;
@@ -591,7 +591,8 @@ async function applyRerunTask(task) {
     if (base) {
       server.value = base;
       selectedServer.value =
-        serverOptions.find((o) => o.url.replace(/\/$/, "") === base)?.url || "";
+        serverOptions.value.find((o) => o.url.replace(/\/$/, "") === base)
+          ?.url || "";
       checkServer();
     }
 
@@ -634,7 +635,7 @@ async function applyRerunTask(task) {
               );
               return;
             }
-          } catch {}
+          } catch { }
         }
         if (item.uploaded_path) shot.uploadedPath = item.uploaded_path;
       }),
@@ -656,7 +657,18 @@ watch(
   },
 );
 
-onMounted(checkServer);
+onMounted(async () => {
+  try {
+    serverOptions.value = await fetchComfyuiServers();
+    if (serverOptions.value[0]?.url) {
+      server.value = serverOptions.value[0].url;
+      selectedServer.value = serverOptions.value[0].url;
+    }
+  } catch (e) {
+    serverError.value = `服务列表加载失败：${e.message}`;
+  }
+  checkServer();
+});
 </script>
 
 <style scoped>

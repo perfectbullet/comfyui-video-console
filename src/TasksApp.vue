@@ -193,17 +193,14 @@
 import {
   ref,
   computed,
-  onMounted,
   onUnmounted,
   onActivated,
   onDeactivated,
 } from "vue";
+import { archiveBase, fetchComfyuiServers } from "./api/http.js";
 import { useTaskStore } from "./store/task";
 const taskStore = useTaskStore();
 
-const archiveBase = (
-  import.meta.env.VITE_ARCHIVER_URL || "http://192.168.8.231:8610"
-).replace(/\/$/, "");
 const serverOptions = ref([]);
 const server = ref("");
 const selectedServer = ref("");
@@ -327,11 +324,7 @@ function selectedServerOption() {
   );
 }
 async function loadServers() {
-  const response = await fetch(`${archiveBase}/api/comfyui-servers`);
-  if (!response.ok)
-    throw Error(`服务列表响应异常：HTTP ${response.status}`);
-  const list = await response.json();
-  serverOptions.value = Array.isArray(list) ? list : [];
+  serverOptions.value = await fetchComfyuiServers();
   if (!server.value && serverOptions.value[0]?.url) {
     server.value = serverOptions.value[0].url;
     selectedServer.value = server.value;
@@ -532,13 +525,18 @@ const init = async () => {
   } catch (e) {
     console.error("加载服务列表失败", e);
   }
+  // await 之后再清一次，避免 onMounted + onActivated 并发 init 留下双定时器
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
   load();
   refreshTimer = setInterval(load, 5000);
 };
-onMounted(() => init());
+// KeepAlive 下首次挂载也会触发 onActivated，不要再叠 onMounted，否则会并发 init
 onActivated(() => init());
-onUnmounted(() => clearInterval(refreshTimer));
 onDeactivated(() => clearInterval(refreshTimer));
+onUnmounted(() => clearInterval(refreshTimer));
 </script>
 
 <style scoped>
