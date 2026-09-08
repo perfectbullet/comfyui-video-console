@@ -12,6 +12,18 @@
     "apiFile": "CS-H3多模态参考导演台工作流-by-autodl-app-v1.json"
   },
   {
+    "id": "bjb1-893",
+    "label": "bjb1-893(RTX-PRO-6000)",
+    "url": "https://u1114350-yhtt-9868c915.bjb1.seetacloud.com:8443",
+    "apiFile": "CS-H3多模态参考导演台工作流-zj-可修改的-v2-bjb2.json"
+  },
+  {
+    "id": "bjb1-896",
+    "label": "bjb1-896(RTX-PRO-6000)",
+    "url": "https://u1114350-mqpx-7647505a.bjb1.seetacloud.com:8443",
+    "apiFile": "CS-H3多模态参考导演台工作流-zj-可修改的-v2-bjb2.json"
+  },
+  {
     "id": "bjb2-588",
     "label": "bjb2-588(RTX 5090)",
     "url": "https://u1114350-835f-af001df4.bjb2.seetacloud.com:8443",
