@@ -1,6 +1,6 @@
 # 前端 Web 控制台开发指南
 
-> 本指南面向在 `ComfyOps/web/` 上继续开发的人：页面结构、核心实现原理、ComfyUI API 依赖、以及改代码的正确姿势。
+> 本指南面向在 `comfyui-video-console/` 上继续开发的人：页面结构、核心实现原理、ComfyUI API 依赖、以及改代码的正确姿势。
 > 部署/发布命令见同目录《前端构建与部署命令速查.md》，架构与运维见《前端Web控制台部署与运维.md》。
 > 最后更新：2026-08-26
 
@@ -10,7 +10,7 @@
 
 | 项 | 内容 |
 | --- | --- |
-| 本地源码 | `/home/zj/aigc/ComfyOps/web/`（Vue 3 + Vite，独立 Git 仓库） |
+| 本地源码 | `/home/zj/aigc/comfyui-video-console/`（Vue 3 + Vite，独立 Git 仓库） |
 | 线上地址 | `http://192.168.8.231:8600` |
 | 后端 | `http://192.168.8.231:8188`（ComfyUI v0.31.1，容器 `comfyui-h3`） |
 | Git 仓库 | `web/` 目录内已 `git init`，初始提交 `1a251b9`，分支 `master` |
@@ -20,7 +20,7 @@
 日常开发流程：
 
 ```bash
-cd /home/zj/aigc/ComfyOps/web
+cd /home/zj/aigc/comfyui-video-console
 # 改代码 → 本地自测 → 提交
 git add -A && git commit -m "说明"
 # 发布（详见《前端构建与部署命令速查.md》）

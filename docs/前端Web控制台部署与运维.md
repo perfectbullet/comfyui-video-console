@@ -42,7 +42,7 @@
 
 ## 3. 目录结构
 
-### 3.1 本地源码（`ComfyOps/web/`）
+### 3.1 本地源码（`comfyui-video-console/`）
 
 ```text
 web/
@@ -63,7 +63,7 @@ web/
     └── assets/             # 工作流模板 JSON（含 cs_h3_9panel_storyboard.api-v2.json）
 ```
 
-> `web/` 是独立 Git 仓库（初始提交 `1a251b9`），源码改动先 `git commit` 再发布，便于回溯。
+> `comfyui-video-console/` 是独立 Git 仓库（初始提交 `1a251b9`），源码改动先 `git commit` 再发布，便于回溯。
 
 ### 3.2 服务器（`/data/aigc/comfyui-h3/`）
 
@@ -82,12 +82,12 @@ web/
 
 ## 4. 部署 / 更新流程
 
-> 适用场景：本地 `web/` 源码（尤其是 `src/`）有改动，需要把新前端推到 231 并生效。
+> 适用场景：本地 `comfyui-video-console/` 源码（尤其是 `src/`）有改动，需要把新前端推到 231 并生效。
 
 ### 4.0 第 0 步：提交 Git（可选但推荐）
 
 ```bash
-cd /home/zj/aigc/ComfyOps/web
+cd /home/zj/aigc/comfyui-video-console
 git add -A && git commit -m "改动说明"
 ```
 
@@ -98,14 +98,14 @@ git add -A && git commit -m "改动说明"
 ```bash
 rsync -az --delete \
   --exclude 'node_modules' --exclude '.vite' --exclude '*.log' --exclude '.DS_Store' \
-  ComfyOps/web/ \
+  comfyui-video-console/ \
   zenking@192.168.8.231:/data/aigc/comfyui-h3/web/
 ```
 
 **方式 B（无 rsync 时，tar 管道，本次实测可用）：**
 
 ```bash
-SRC=ComfyOps/web
+SRC=comfyui-video-console
 tar czf - --exclude node_modules --exclude .vite --exclude '*.log' --exclude .DS_Store -C "$SRC" . \
 | ssh zenking@192.168.8.231 \
   'rm -rf /data/aigc/comfyui-h3/web && mkdir -p /data/aigc/comfyui-h3/web && tar xzf - -C /data/aigc/comfyui-h3/web'
