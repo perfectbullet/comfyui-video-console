@@ -143,7 +143,6 @@
                 v-for="(v, i) in t.videos"
                 :key="i"
                 :src="viewUrl(v, t)"
-                preload="none"
                 controls
               ></video>
               <p class="row-action">
