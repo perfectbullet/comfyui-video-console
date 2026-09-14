@@ -130,21 +130,45 @@
               </div>
             </div>
             <p class="row-info">
-              生成服务：{{ t.serverName }} ·
-              {{
-                inProgress(t.status)
-                  ? `提交于 ${fmtTime(t.start)}`
-                  : `${fmtTime(t.start)} → ${fmtTime(t.end)}（${durText(t)}）`
-              }}
+              总生成时间：{{ fmtDuration(t.video_generation_seconds) }}
             </p>
             <p class="row-info">prompt_id：{{ t.prompt_id }}</p>
             <template v-if="t.videos && t.videos.length">
-              <video
+              <div
                 v-for="(v, i) in t.videos"
                 :key="i"
-                :src="viewUrl(v, t)"
-                controls
-              ></video>
+                class="video-row"
+              >
+                <!-- ended 截最后一帧，退出全屏后在旁边展示；canvas 不会带上原生 controls -->
+                <video
+                  :src="viewUrl(v, t)"
+                  controls
+                  @ended="onVideoEnded($event, `${t.prompt_id}:${i}`)"
+                ></video>
+                <div
+                  v-if="lastFrames[`${t.prompt_id}:${i}`]"
+                  class="last-frame-box"
+                >
+                  <img
+                    class="last-frame"
+                    :src="lastFrames[`${t.prompt_id}:${i}`]"
+                    alt="最后一帧"
+                  />
+                  <button
+                    type="button"
+                    class="frame-download"
+                    @click="
+                      downloadLastFrame(
+                        lastFrames[`${t.prompt_id}:${i}`],
+                        t.prompt_id,
+                        i,
+                      )
+                    "
+                  >
+                  下载尾帧
+                  </button>
+                </div>
+              </div>
               <p class="row-action">
                 <a
                   v-for="(v, i) in t.videos"
@@ -172,8 +196,20 @@
           >
             上一页
           </button>
-          <span class="pager-info"
-            >第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} 条</span
+          <label class="pager-info"
+            >第
+            <input
+              class="pager-input"
+              type="number"
+              min="1"
+              :max="totalPages"
+              :value="page"
+              :disabled="loading"
+              aria-label="跳转到页码"
+              @keydown.enter.prevent="jumpToPage"
+              @change="jumpToPage"
+            />
+            / {{ totalPages }} 页 · 共 {{ total }} 条</label
           >
           <button
             type="button"
@@ -220,6 +256,8 @@ const rerunning = ref(new Set());
 const serverChecking = ref(false);
 const serverError = ref("");
 let refreshTimer = null;
+/** 退出全屏后展示在视频旁的最后一帧；全屏过程中不往画面上叠图 */
+const lastFrames = ref({});
 
 const successful = (status) =>
   ["success", "completed", "archived"].includes(status);
@@ -284,6 +322,87 @@ function setRerunning(promptId, value) {
   rerunning.value = next;
 }
 
+function snapFrame(video) {
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  if (!canvas.width || !canvas.height) return "";
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  return canvas.toDataURL("image/jpeg");
+}
+async function captureFromUrl(url) {
+  const blob = await fetch(url).then((r) => {
+    if (!r.ok) throw Error();
+    return r.blob();
+  });
+  const blobUrl = URL.createObjectURL(blob);
+  try {
+    const v = document.createElement("video");
+    v.muted = true;
+    v.preload = "auto";
+    v.src = blobUrl;
+    await new Promise((resolve, reject) => {
+      v.onerror = reject;
+      v.onloadedmetadata = () => {
+        v.currentTime = Math.max(0, (v.duration || 0) - 0.04);
+      };
+      v.onseeked = resolve;
+    });
+    return snapFrame(v);
+  } finally {
+    URL.revokeObjectURL(blobUrl);
+  }
+}
+/** 播到结尾截最后一帧；截图只写入 lastFrames，等退出全屏后出现在列表视频旁边 */
+function onVideoEnded(e, key) {
+  const video = e.currentTarget;
+  const apply = (frame) => {
+    if (!frame) return;
+    lastFrames.value = { ...lastFrames.value, [key]: frame };
+  };
+  const finish = async () => {
+    try {
+      const frame = snapFrame(video);
+      if (frame) {
+        apply(frame);
+        return;
+      }
+    } catch {
+      /* 画布被跨域污染时改走拉取 */
+    }
+    try {
+      apply(await captureFromUrl(video.currentSrc || video.src));
+    } catch {
+      /* 跨域且无法拉取时跳过 */
+    }
+  };
+  const t = Math.max(0, (video.duration || 0) - 0.04);
+  if (Number.isFinite(t) && Math.abs(video.currentTime - t) > 0.08) {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      finish();
+    };
+    video.addEventListener("seeked", onSeeked);
+    video.currentTime = t;
+    return;
+  }
+  finish();
+}
+function downloadLastFrame(dataUrl, promptId, index) {
+  if (!dataUrl) return;
+  const [meta, b64] = dataUrl.split(",");
+  const mime = /data:([^;]+)/.exec(meta)?.[1] || "image/jpeg";
+  const bin = atob(b64 || "");
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const blob = new Blob([bytes], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${String(promptId).slice(0, 8)}-frame-${index + 1}.jpg`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 function viewUrl(v, task) {
   if (v.archive_url && archiveBase) return `${archiveBase}${v.archive_url}`;
   return `${task.serverUrl || server.value}/view?${new URLSearchParams({ filename: v.filename, subfolder: v.subfolder || "", type: v.type || "output" })}`;
@@ -291,6 +410,16 @@ function viewUrl(v, task) {
 function fmtTime(ts) {
   if (!ts) return "—";
   return new Date(ts).toLocaleString("zh-CN", { hour12: false });
+}
+function fmtDuration(seconds) {
+  const s = Math.round(Number(seconds));
+  if (!Number.isFinite(s) || s < 0) return "—";
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}时${m}分${sec}秒`;
+  if (m > 0) return `${m}分${sec}秒`;
+  return `${sec}秒`;
 }
 function durText(t) {
   if (!t.start || !t.end) return "—";
@@ -307,10 +436,22 @@ function chooseServer() {
   load();
 }
 function goToPage(nextPage) {
-  const target = Math.max(1, Math.min(nextPage, totalPages.value || 1));
+  const n = Number(nextPage);
+  if (!Number.isFinite(n)) return;
+  const target = Math.max(1, Math.min(Math.trunc(n), totalPages.value || 1));
   if (target === page.value) return;
   page.value = target;
   load();
+}
+function jumpToPage(e) {
+  const input = e.target;
+  const n = Number.parseInt(input.value, 10);
+  if (!Number.isFinite(n)) {
+    input.value = String(page.value);
+    return;
+  }
+  goToPage(n);
+  input.value = String(page.value);
 }
 function onServerInput() {
   if (server.value !== selectedServer.value) selectedServer.value = "";
@@ -337,6 +478,7 @@ function archiveTask(task) {
     serverUrl: task.server_url || "",
     start: task.started_at || task.submitted_at || null,
     end: task.finished_at || null,
+    video_generation_seconds: task.video_generation_seconds,
     videos: (task.output_files || []).filter((file) =>
       /\.mp4$/i.test(file.filename || ""),
     ),
@@ -752,12 +894,44 @@ th {
   color: #9eb0cb;
   font-size: 12px;
 }
-video {
+.video-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.video-row video,
+.video-row .last-frame {
   display: block;
   width: 320px;
   background: #000;
   border-radius: 8px;
-  margin-top: 10px;
+}
+.last-frame-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.frame-download {
+  width: auto;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid #2a3a53;
+  border-radius: 6px;
+  color: #7dd3fc;
+  background: #173c55;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.video-row video:fullscreen,
+.video-row video:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0;
 }
 a {
   color: #7dd3fc;
@@ -777,21 +951,22 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   margin-top: 18px;
   flex-wrap: wrap;
 }
 .pager button {
   width: auto;
-  min-height: 32px;
+  height: 32px;
   margin: 0;
-  padding: 6px 14px;
+  padding: 0 14px;
   border: 1px solid #2a3a53;
   border-radius: 8px;
   color: #e1e8f7;
   background: #111a27;
   font: inherit;
   font-size: 13px;
+  line-height: 1;
   cursor: pointer;
 }
 .pager button:disabled {
@@ -799,7 +974,41 @@ a {
   cursor: not-allowed;
 }
 .pager-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
   color: #9eb0cb;
   font-size: 13px;
+  font-weight: 400;
+  line-height: 32px;
+  white-space: nowrap;
+}
+.pager-input {
+  box-sizing: border-box;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  padding: 0 6px;
+  border: 1px solid #2a3a53;
+  border-radius: 8px;
+  color: #e1e8f7;
+  background: #111a27;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 30px;
+  text-align: center;
+  vertical-align: middle;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.pager-input:disabled {
+  opacity: 0.45;
+}
+.pager-input::-webkit-outer-spin-button,
+.pager-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
 }
 </style>
