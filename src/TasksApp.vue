@@ -23,11 +23,7 @@
             @change="chooseServer"
           >
             <option value="">常用服务</option>
-            <option
-              v-for="option in serverOptions"
-              :key="option.url"
-              :value="option.url"
-            >
+            <option v-for="option in serverOptions" :key="option.url" :value="option.url">
               {{ option.label }}
             </option></select
           ><input
@@ -37,9 +33,7 @@
             @change="load"
             @input="onServerInput"
           />
-          <p v-if="serverChecking" class="server-checking">
-            正在检查服务连通性…
-          </p>
+          <p v-if="serverChecking" class="server-checking">正在检查服务连通性…</p>
           <p v-else-if="serverError" class="server-error" role="alert">
             {{ serverError }}
           </p></label
@@ -63,8 +57,7 @@
           </div>
         </div>
         <p class="muted">
-          每 5 秒自动刷新（<button class="inline" @click="load">立即刷新</button
-          >）
+          每 5 秒自动刷新（<button class="inline" @click="load">立即刷新</button>）
         </p>
       </section>
 
@@ -72,9 +65,7 @@
         <div class="list-head">
           <div>
             <h2>任务列表</h2>
-            <p class="muted">
-              运行中、排队中、归档状态、已完成和失败的任务统一展示。
-            </p>
+            <p class="muted">运行中、排队中、归档状态、已完成和失败的任务统一展示。</p>
           </div>
           <label class="filter"
             >筛选<select v-model="filter">
@@ -89,26 +80,20 @@
             </select></label
           >
         </div>
-        <p v-if="!filteredTasks.length" class="muted empty">
-          暂无符合条件的任务。
-        </p>
+        <p v-if="!filteredTasks.length" class="muted empty">暂无符合条件的任务。</p>
         <template v-else>
           <div v-for="t in filteredTasks" :key="t.prompt_id" class="task">
             <div class="title">
               <h3>任务 {{ t.prompt_id.slice(0, 8) }}</h3>
               <div class="task-actions">
-                <strong :class="statusClass(t.status)">{{
-                  statusLabel(t.status)
-                }}</strong
+                <strong :class="statusClass(t.status)">{{ statusLabel(t.status) }}</strong
                 ><button
                   class="rerun"
                   type="button"
                   :disabled="rerunning.has(t.prompt_id)"
                   @click="rerunTask(t)"
                 >
-                  {{
-                    rerunning.has(t.prompt_id) ? "正在重新提交…" : "重新运行"
-                  }}</button
+                  {{ rerunning.has(t.prompt_id) ? "正在重新提交…" : "重新运行" }}</button
                 ><button
                   v-if="t.status === 'running' || t.status === 'queued'"
                   class="cancel"
@@ -116,9 +101,7 @@
                   :disabled="cancelling.has(t.prompt_id)"
                   @click="cancelTask(t)"
                 >
-                  {{
-                    cancelling.has(t.prompt_id) ? "正在取消…" : "取消任务"
-                  }}</button
+                  {{ cancelling.has(t.prompt_id) ? "正在取消…" : "取消任务" }}</button
                 ><button
                   class="delete"
                   type="button"
@@ -135,21 +118,14 @@
             </p>
             <p class="row-info">prompt_id：{{ t.prompt_id }}</p>
             <template v-if="t.videos && t.videos.length">
-              <div
-                v-for="(v, i) in t.videos"
-                :key="i"
-                class="video-row"
-              >
+              <div v-for="(v, i) in t.videos" :key="i" class="video-row">
                 <!-- ended 截最后一帧，退出全屏后在旁边展示；canvas 不会带上原生 controls -->
                 <video
                   :src="viewUrl(v, t)"
                   controls
                   @ended="onVideoEnded($event, `${t.prompt_id}:${i}`)"
                 ></video>
-                <div
-                  v-if="lastFrames[`${t.prompt_id}:${i}`]"
-                  class="last-frame-box"
-                >
+                <div v-if="lastFrames[`${t.prompt_id}:${i}`]" class="last-frame-box">
                   <img
                     class="last-frame"
                     :src="lastFrames[`${t.prompt_id}:${i}`]"
@@ -159,14 +135,10 @@
                     type="button"
                     class="frame-download"
                     @click="
-                      downloadLastFrame(
-                        lastFrames[`${t.prompt_id}:${i}`],
-                        t.prompt_id,
-                        i,
-                      )
+                      downloadLastFrame(lastFrames[`${t.prompt_id}:${i}`], t.prompt_id, i)
                     "
                   >
-                  下载尾帧
+                    下载尾帧
                   </button>
                 </div>
               </div>
@@ -181,11 +153,7 @@
               </p>
             </template>
             <p v-else class="row-info row-status">
-              {{
-                inProgress(t.status)
-                  ? "任务处理中，完成后将显示视频。"
-                  : "无视频输出"
-              }}
+              {{ inProgress(t.status) ? "任务处理中，完成后将显示视频。" : "无视频输出" }}
             </p>
           </div>
         </template>
@@ -226,13 +194,7 @@
 </template>
 
 <script setup>
-import {
-  ref,
-  computed,
-  onUnmounted,
-  onActivated,
-  onDeactivated,
-} from "vue";
+import { ref, computed, onUnmounted, onActivated, onDeactivated } from "vue";
 import { archiveBase, fetchComfyuiServers } from "./api/http.js";
 import { useTaskStore } from "./store/task";
 const taskStore = useTaskStore();
@@ -260,21 +222,17 @@ let refreshTimer = null;
 /** 退出全屏后展示在视频旁的最后一帧；全屏过程中不往画面上叠图 */
 const lastFrames = ref({});
 
-const successful = (status) =>
-  ["success", "completed", "archived"].includes(status);
+const successful = (status) => ["success", "completed", "archived"].includes(status);
 const failed = (status) =>
   ["error", "failed", "interrupted", "lost", "archive_failed"].includes(status);
-const inProgress = (status) =>
-  ["running", "queued", "archiving"].includes(status);
-const errorCount = computed(
-  () => completed.value.filter((t) => failed(t.status)).length,
-);
+const inProgress = (status) => ["running", "queued", "archiving"].includes(status);
+const errorCount = computed(() => completed.value.filter((t) => failed(t.status)).length);
 const allTasks = computed(() =>
   [...running.value, ...pending.value, ...completed.value].sort((a, b) => {
     if (inProgress(a.status) !== inProgress(b.status))
       return inProgress(a.status) ? -1 : 1;
     return (b.end || b.start || 0) - (a.end || a.start || 0);
-  }),
+  })
 );
 const filteredTasks = computed(() =>
   filter.value === "all"
@@ -283,9 +241,9 @@ const filteredTasks = computed(() =>
         filter.value === "success"
           ? successful(t.status)
           : filter.value === "error"
-            ? failed(t.status)
-            : t.status === filter.value,
-      ),
+          ? failed(t.status)
+          : t.status === filter.value
+      )
 );
 function statusLabel(status) {
   return (
@@ -406,7 +364,11 @@ function downloadLastFrame(dataUrl, promptId, index) {
 }
 function viewUrl(v, task) {
   if (v.archive_url && archiveBase) return `${archiveBase}${v.archive_url}`;
-  return `${task.serverUrl || server.value}/view?${new URLSearchParams({ filename: v.filename, subfolder: v.subfolder || "", type: v.type || "output" })}`;
+  return `${task.serverUrl || server.value}/view?${new URLSearchParams({
+    filename: v.filename,
+    subfolder: v.subfolder || "",
+    type: v.type || "output",
+  })}`;
 }
 function fmtTime(ts) {
   if (!ts) return "—";
@@ -453,9 +415,7 @@ function onServerInput() {
 }
 function selectedServerOption() {
   const base = server.value.replace(/\/$/, "");
-  return serverOptions.value.find(
-    (option) => option.url.replace(/\/$/, "") === base,
-  );
+  return serverOptions.value.find((option) => option.url.replace(/\/$/, "") === base);
 }
 async function loadServers() {
   serverOptions.value = await fetchComfyuiServers();
@@ -474,20 +434,19 @@ function archiveTask(task) {
     end: task.finished_at || null,
     video_generation_seconds: task.video_generation_seconds,
     videos: (task.output_files || []).filter((file) =>
-      /\.mp4$/i.test(file.filename || ""),
+      /\.mp4$/i.test(file.filename || "")
     ),
   };
 }
 async function cancelTask(task) {
-  const action =
-    task.status === "running" ? "停止正在运行的任务" : "从队列移除任务";
+  const action = task.status === "running" ? "停止正在运行的任务" : "从队列移除任务";
   if (!window.confirm(`确认${action}？\n${task.prompt_id}`)) return;
   setCancelling(task.prompt_id, true);
   try {
     const base = task.serverUrl || server.value.replace(/\/$/, "");
     let response = await fetch(
       `${base}/api/jobs/${encodeURIComponent(task.prompt_id)}/cancel`,
-      { method: "POST", headers: { "Content-Type": "application/json" } },
+      { method: "POST", headers: { "Content-Type": "application/json" } }
     );
     if (response.status === 404) {
       response =
@@ -517,7 +476,7 @@ async function deleteTask(task) {
     : "";
   if (
     !window.confirm(
-      `确认删除归档任务？\n${task.prompt_id}${warning}\n\n将删除归档记录和已缓存的视频，且无法恢复。`,
+      `确认删除归档任务？\n${task.prompt_id}${warning}\n\n将删除归档记录和已缓存的视频，且无法恢复。`
     )
   )
     return;
@@ -525,11 +484,10 @@ async function deleteTask(task) {
   try {
     const response = await fetch(
       `${archiveBase}/api/tasks/${encodeURIComponent(task.prompt_id)}`,
-      { method: "DELETE" },
+      { method: "DELETE" }
     );
     const data = await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw Error(data.detail || `删除失败：HTTP ${response.status}`);
+    if (!response.ok) throw Error(data.detail || `删除失败：HTTP ${response.status}`);
     await load();
   } catch (e) {
     window.alert(e.message);
@@ -543,11 +501,10 @@ async function rerunTask(task) {
 }
 async function rerunTaskOld(task) {
   const target = selectedServerOption();
-  if (!target)
-    return window.alert("请从常用服务列表选择重新运行的目标 ComfyUI 服务。");
+  if (!target) return window.alert("请从常用服务列表选择重新运行的目标 ComfyUI 服务。");
   if (
     !window.confirm(
-      `确认将任务重新运行到 ${target.label}？\n\n来源任务：${task.prompt_id}\n将重新上传归档中的原始图片，并创建新的任务 ID。`,
+      `确认将任务重新运行到 ${target.label}？\n\n来源任务：${task.prompt_id}\n将重新上传归档中的原始图片，并创建新的任务 ID。`
     )
   )
     return;
@@ -559,14 +516,11 @@ async function rerunTaskOld(task) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ server_id: target.id }),
-      },
+      }
     );
     const data = await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw Error(data.detail || `重新运行失败：HTTP ${response.status}`);
-    window.alert(
-      `已重新提交到 ${target.label}。\n新任务 ID：${data.prompt_id}`,
-    );
+    if (!response.ok) throw Error(data.detail || `重新运行失败：HTTP ${response.status}`);
+    window.alert(`已重新提交到 ${target.label}。\n新任务 ID：${data.prompt_id}`);
     await load();
   } catch (e) {
     window.alert(e.message);
@@ -612,20 +566,14 @@ async function load() {
   loading.value = true;
   serverChecking.value = true;
   try {
-    const tasksUrl = new URL(`${archiveBase}/api/tasks`);
+    // archiveBase 可能是相对路径（如 /archiver），必须带第二参数，否则 new URL 会 Invalid URL
+    const tasksUrl = new URL(`${archiveBase}/api/tasks`, window.location.origin);
     tasksUrl.searchParams.set("page", String(page.value));
     tasksUrl.searchParams.set("page_size", String(pageSize.value));
-    const [statsResult, archivedResult] = await Promise.allSettled([
-      fetch(`${base}/system_stats`),
-      fetch(tasksUrl),
-    ]);
-    if (archivedResult.status === "rejected") throw archivedResult.reason;
-    const archivedResponse = archivedResult.value;
+    const archivedResponse = await fetch(tasksUrl);
     if (!archivedResponse.ok)
       throw Error(`任务归档服务响应异常：HTTP ${archivedResponse.status}`);
-    const { items, pagination } = parseTasksPayload(
-      await archivedResponse.json(),
-    );
+    const { items, pagination } = parseTasksPayload(await archivedResponse.json());
     const archivedTasks = items.map(archiveTask);
     page.value = pagination.page;
     pageSize.value = pagination.page_size;
@@ -636,15 +584,14 @@ async function load() {
     running.value = archivedTasks.filter((task) => task.status === "running");
     pending.value = archivedTasks.filter((task) => task.status === "queued");
     completed.value = archivedTasks.filter(
-      (task) => task.status !== "running" && task.status !== "queued",
+      (task) => task.status !== "running" && task.status !== "queued"
     );
-    if (statsResult.status === "rejected") throw statsResult.reason;
-    if (!statsResult.value.ok)
-      throw Error(`ComfyUI 接口响应异常：HTTP ${statsResult.value.status}`);
     serverError.value = "";
   } catch (e) {
     console.error("加载任务失败", e);
-    serverError.value = `无法连接 ComfyUI 服务地址：${base}（${e.message || "网络请求失败"}）`;
+    serverError.value = `无法连接 ComfyUI 服务地址：${base}（${
+      e.message || "网络请求失败"
+    }）`;
   } finally {
     loading.value = false;
     serverChecking.value = false;
