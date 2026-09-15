@@ -129,6 +129,7 @@
                 </button>
               </div>
             </div>
+            <p class="row-info">提交时间：{{ fmtTime(t.start) }}</p>
             <p class="row-info">
               总生成时间：{{ fmtDuration(t.video_generation_seconds) }}
             </p>
@@ -421,14 +422,7 @@ function fmtDuration(seconds) {
   if (m > 0) return `${m}分${sec}秒`;
   return `${sec}秒`;
 }
-function durText(t) {
-  if (!t.start || !t.end) return "—";
-  const toMs = (value) =>
-    typeof value === "number" ? value : new Date(value).getTime();
-  const s = Math.round((toMs(t.end) - toMs(t.start)) / 1000);
-  if (!Number.isFinite(s)) return "—";
-  return `${Math.floor(s / 60)}分${s % 60}秒`;
-}
+
 function chooseServer() {
   if (!selectedServer.value) return;
   server.value = selectedServer.value;
@@ -476,7 +470,7 @@ function archiveTask(task) {
     status: task.status,
     serverName: task.server_label || task.server_id || "未标注服务器",
     serverUrl: task.server_url || "",
-    start: task.started_at || task.submitted_at || null,
+    start: task.submitted_at || null,
     end: task.finished_at || null,
     video_generation_seconds: task.video_generation_seconds,
     videos: (task.output_files || []).filter((file) =>
