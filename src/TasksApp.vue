@@ -117,6 +117,8 @@
               总生成时间：{{ fmtDuration(t.video_generation_seconds) }}
             </p>
             <p class="row-info">prompt_id：{{ t.prompt_id }}</p>
+            <p class="row-info">server_label：{{ t.server_label }}</p>
+            <p class="row-info">workflow_file：{{ t.workflow_file }}</p>
             <template v-if="t.videos && t.videos.length">
               <div v-for="(v, i) in t.videos" :key="i" class="video-row">
                 <!-- ended 截最后一帧，退出全屏后在旁边展示；canvas 不会带上原生 controls -->
@@ -426,6 +428,7 @@ async function loadServers() {
 }
 function archiveTask(task) {
   return {
+    ...task,
     prompt_id: task.prompt_id,
     status: task.status,
     serverName: task.server_label || task.server_id || "未标注服务器",
