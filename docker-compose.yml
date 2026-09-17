@@ -1,0 +1,14 @@
+services:
+  vue-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: comfyui-h3-vue-web:latest
+    container_name: comfyui-minimax-h3-web
+    restart: "no"
+    ports:
+      # 0.0.0.0:8600 -> Vue 前端控制台
+      - "8611:80"
+    volumes:
+      # 使用项目根目录构建出的 dist，避免将静态包固化到镜像中。
+      - ./dist:/app:ro

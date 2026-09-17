@@ -4,13 +4,13 @@
  * 优先级：
  *   1. 构建期显式指定 `VITE_ARCHIVER_URL`（临时覆盖用）
  *   2. 页面挂在子路径下，如 https://xxx/comfyui-video-console/
- *      → 取同源同前缀，由 nginx 把 `/<前缀>/api/` 反代到 archiver 后端。
- *        绝不能回退到内网 IP：HTTPS 页面请求 http:// 会被浏览器按
- *        「混合内容」直接拦掉，公网也路由不到 192.168.8.231。
- *   3. 页面在根路径（如内网直连容器 http://192.168.8.231:8600/）
- *      → 回退到 archiver 独立服务的内网地址。
+ *      → 返回 "/comfyui-video-console"，由线上 nginx 反代 `/<前缀>/api/`。
+ *   3. 页面在根路径（本地 Vite / 测试 http://192.168.8.231:8600/）
+ *      → 返回 ""（当前源 + /api/...）。
+ *        本地：vite.config.js 的 proxy
+ *        测试：nginx location /api/ → :8610
  *
- * 这样同一份 dist 产物在「线上子路径」和「内网根路径」下都能跑，无需分别构建。
+ * 同一份 dist：线上走 2，本地/测试走 3，互不影响。
  */
 function resolveArchiveBase() {
   const fromEnv = import.meta.env.VITE_ARCHIVER_URL;
@@ -19,8 +19,7 @@ function resolveArchiveBase() {
   // 页面所在目录，例如 /comfyui-video-console/ → /comfyui-video-console
   const dir = window.location.pathname.replace(/[^/]*$/, "");
   if (dir && dir !== "/") return dir.replace(/\/$/, "");
-
-  return "http://192.168.8.231:8610";
+  return "";
 }
 
 export const archiveBase = resolveArchiveBase();

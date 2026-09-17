@@ -287,7 +287,8 @@ function selectedWorkflow() {
   return workflowTemplates[selectedServerOption()?.apiFile] || workflow231;
 }
 function usesArchiver() {
-  return Boolean(archiveBase && selectedServerOption()?.id);
+  // 根路径 archiveBase 是 ""，仍表示走 Archiver
+  return Boolean(selectedServerOption()?.id);
 }
 async function createDraft() {
   const r = await fetch(`${archiveBase}/api/task-drafts`, { method: "POST" }),

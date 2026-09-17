@@ -365,7 +365,8 @@ function downloadLastFrame(dataUrl, promptId, index) {
   URL.revokeObjectURL(url);
 }
 function viewUrl(v, task) {
-  if (v.archive_url && archiveBase) return `${archiveBase}${v.archive_url}`;
+  // 根路径 archiveBase 是 ""，不能用 truthy 判断
+  if (v.archive_url) return `${archiveBase}${v.archive_url}`;
   return `${task.serverUrl || server.value}/view?${new URLSearchParams({
     filename: v.filename,
     subfolder: v.subfolder || "",

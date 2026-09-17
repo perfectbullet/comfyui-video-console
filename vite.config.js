@@ -16,7 +16,10 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     host: '0.0.0.0',
-    port: 8600
+    port: 8600,
+    proxy: {
+      '/api': { target: 'http://192.168.8.231:8610', changeOrigin: true },
+    },
   },
   build: {
     outDir: 'dist'
